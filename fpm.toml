@@ -1,0 +1,36 @@
+name = "DRIP"
+version = "0.1.0"
+license = "MIT"
+author = "Josh Forer"
+maintainer = "jbf2177@columbia.edu"
+copyright = "2023 Josh Forer"
+
+[library]
+source-dir = "src"
+
+[build]
+link = ["blas", "lapack"]
+external-modules = "cernlib"
+
+[dependencies]
+stdlib = "*"
+fpm = { git = "https://github.com/fortran-lang/fpm" }
+
+[dev-dependencies]
+test-drive.git = "https://github.com/fortran-lang/test-drive"
+test-drive.tag = "v0.4.0"
+
+[[executable]]
+main="DRIP.f"
+source-dir="main"
+name="DRIP"
+
+[[test]]
+name="tests"
+source-dir="test"
+main="tester.f"
+
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "free"
