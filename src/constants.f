@@ -9,7 +9,8 @@ module constants
   private
 
   ! -- variables
-  public :: Ryd
+  public :: au2ryd
+  public :: au2invcm
   public :: ahalf
   public :: au2Ghz
   public :: au2K
@@ -58,7 +59,9 @@ module constants
     !! initializ positive integers to this number to figure out if they have taken a reasonable value
 
   ! -- conversion constants
-  real(rp), parameter :: Ryd = 219474.6313710e0_rp
+  integer(ip), parameter :: au2ryd = 2
+    !! multiplication factor to convert atomic units of energy (hartree) to Rydbergs
+  real(rp), parameter :: au2invcm = 219474.6313710e0_rp
     !! multiplication factor to convert atomic units of energy (hartree) to wavenumbers (inverse centimeters)
   real(rp), parameter :: au2K = 3.1577465e5_rp
     !! multiplication factor to convert atomic units of energy (hartree) to Kelvin using Boltzmann's constant
@@ -74,7 +77,7 @@ module constants
     !! multiplication factor to convert atomic units of time (hbar / hartree) to seconds
   real(rp), parameter :: au2ps = 2.4189e-05_rp
     !! multiplication factor to convert atomic units of time (hbar / hartree) to picoseconds (1e-12 s)
-  real(rp), parameter :: au2Ghz = Ryd*30._rp
+  real(rp), parameter :: au2Ghz = au2invcm * 30._rp
     !! multiplication factor to convert atomic units of energy (hartree) to GHz via c = νλ
   real(rp), parameter :: xs2rate = 59309707.89761206_rp
     !! multiplication factor to convert atomic units of area (bohr^2) to units of a rate coefficient (bohr^3 / time)

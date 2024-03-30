@@ -26,9 +26,9 @@ module directories
   public :: mkdir_command
 
   character(:), allocatable :: input_directory
-    !! The input UKRmol+ directory that the code will read as input
+    !! The input UKRmol+ directory that the code will read as input (absolute path)
   character(:), allocatable :: output_directory
-    !! The main output directory of the code
+    !! The main output directory of the code (absolute path)
   character(:), allocatable :: output_molecule_directory
     !! The molecule directory under the output directory of the code
 
@@ -88,6 +88,7 @@ subroutine read_directories
   input_directory  = trim(input_directory)
   output_directory = trim(output_directory)
 
+  ! -- print namelist variables to stdout
   write(stdout, directories_namelist)
   write(stdout, *)
 
@@ -97,12 +98,12 @@ subroutine read_directories
   end select
 
   select case(input_directory)
-    case(trim(temp), "/") ; call die("Must define input_directory")
+    case(trim(temp)) ; call die("Must define input_directory")
     case default     ; continue
   end select
 
   select case(output_directory)
-    case(trim(temp), "/") ; call die("Must define output_directory")
+    case(trim(temp)) ; call die("Must define output_directory")
     case default     ; continue
   end select
 
@@ -115,7 +116,8 @@ subroutine make_directories
   use types,      only: ip
   use system,     only: die
   use control,    only: energy_dependent, num_evaluation_energies
-  use globals,    only: spins, nspins, spin_name
+  use globals,    only: spins, nspins
+  use symmetry,   only: spin_name
   use characters, only: add_trailing, int2char0
 
   implicit none

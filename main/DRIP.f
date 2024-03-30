@@ -4,11 +4,12 @@ program DRIP
 
   use types,                  only: ip, rp
   use system,                 only: stdout, determine_system_properties
-  use globals,                only: spins, nspins, spin_name
+  use globals,                only: spins, nspins
+  use symmetry,               only: spin_name
   use control,                only: num_evaluation_energies, energy_dependent
   use characters,             only: s_hms, int2char0, add_trailing
   use directories,            only: make_directories, directory_separator, run_directory, spin_directory, energy_directory
-  use UKRmol_scattering_data, only: get_K_matrix
+  use UKRmol_scattering_data, only: get_K_matrix_and_electronic_channels
 
   implicit none
 
@@ -49,7 +50,12 @@ program DRIP
     !    energy-independent calculations are all entirely separate from one another WITHIN A SPIN
     !    MULTIPLICITY. This means that the program will relay no information between energies E1 and E2,
     !    but energy E1 from spin 1 and E1 from spin 2 will be averaged together
-    nrg_loop: do inrg = 1, num_evaluation_energies
+    inrg = 0
+    nrg_loop: do
+
+      inrg = inrg + 1
+
+      if(inrg .gt. num_evaluation_energies) exit nrg_loop
 
       ! -- make sure we have the right energy_directory for this pass
       if(energy_dependent) then
@@ -59,13 +65,7 @@ program DRIP
       endif
       call add_trailing(energy_directory, directory_separator)
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      ! ready to read K-matrices ? This routine should only read the
-      ! K-matrices and get the relevant information from the UKRmol+ codes
-      ! like channel data and energies, and target state projections if
-      ! possible. I have not figured out how to do the latter yet
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      call get_K_matrix
+      call get_K_matrix_and_electronic_channels(spins(ispin), inrg)
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! do stuff to k matrices

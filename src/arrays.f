@@ -1,611 +1,858 @@
 ! ===================================================================================================!
 module arrays
-! ===================================================================================================!
+  !! Contains routines associated with arrays, like appending elements to arrays, removing matching
+  !! values, array searches, and array sorts.
 
-use types, only: ip, rp
-
-implicit none
-
-private
-
-public append
-public append_uniq
-public remove_value
-public alloc
-public dealloc
-public binary_search
-public interpolation_search
-public swap
-
-save
-
-! ---------------------------------------------------------------------------------------------------!
-interface append
-  !! Append an element to an array. If not allocated, allocate the array to contain that element
-  module procedure append_i
-  module procedure append_r
-  module procedure append_c
-end interface append
-
-! ---------------------------------------------------------------------------------------------------!
-interface append_uniq
-  !! Append a unique element to an array. If not allocated, allocate the array to contain that element.
-  module procedure append_uniq_i
-end interface append_uniq
-
-! ---------------------------------------------------------------------------------------------------!
-interface remove_value
-  !! Remove all matching values from an array
-  module procedure remove_value_i
-  module procedure remove_value_iarr
-end interface remove_value
-
-! ---------------------------------------------------------------------------------------------------!
-interface swap
-  !! Swap two elements of an array
-  module procedure swap_i
-  module procedure swap_r
-  module procedure swap_c
-end interface swap
-
-! ---------------------------------------------------------------------------------------------------!
-interface alloc
-  !! Allocate an array. If it's allocated, free the array first
-  module procedure alloc_1D_int
-  module procedure alloc_1D_real
-  module procedure alloc_1D_cplx
-  module procedure alloc_2D_int
-  module procedure alloc_2D_real
-  module procedure alloc_2D_cplx
-  module procedure alloc_3D_int
-  module procedure alloc_3D_real
-  module procedure alloc_3D_cplx
-end interface alloc
-
-! ---------------------------------------------------------------------------------------------------!
-interface dealloc
-  !! Deallocate an array. If it isn't allocated, do nothing.
-  module procedure dealloc_1D_int
-  module procedure dealloc_1D_real
-  module procedure dealloc_1D_cplx
-  module procedure dealloc_2D_int
-  module procedure dealloc_2D_real
-  module procedure dealloc_2D_cplx
-  module procedure dealloc_3D_int
-  module procedure dealloc_3D_real
-  module procedure dealloc_3D_cplx
-end interface dealloc
-
-! ---------------------------------------------------------------------------------------------------!
-interface binary_search
-  !! Binary search through a sorted array
-  module procedure binary_search_r
-end interface binary_search
-
-! ---------------------------------------------------------------------------------------------------!
-interface interpolation_search
-  !! Interpolation (linear) search through a sorted array
-  module procedure interpolation_search_r
-end interface interpolation_search
-
-! ===================================================================================================!
-contains
-! ===================================================================================================!
-
-! ---------------------------------------------------------------------------------------------------!
-! APPEND INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-subroutine append_i(arr, new)
-  !! Append element "new" to array "arr"
+  use types,     only: ip, rp
+  use utilities, only: swapvars
 
   implicit none
 
-  integer(ip), intent(in)                 :: new
-  integer(ip), intent(inout), allocatable :: arr(:)
-
-  select case(allocated(arr))
-  case(.true.)
-    arr = [arr, new]
-  case(.false.)
-    arr = [new]
-  end select
-
-end subroutine append_i
-! ---------------------------------------------------------------------------------------------------!
-subroutine append_r(arr, new)
-  !! Append element "new" to array "arr"
+  private
+
+  public append
+  public append_uniq
+  public remove_value
+  public alloc
+  public dealloc
+  public binary_search
+  public interpolation_search
+  public swap
+  public bubble_sort
+
+  save
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface append
+    !! Append an element to an array. If not allocated, allocate the array to contain that element
+    module procedure append_i
+    module procedure append_r
+    module procedure append_c
+  end interface append
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface append_uniq
+    !! Append a unique element to an array. If not allocated, allocate the array to contain that element.
+    module procedure append_uniq_i
+  end interface append_uniq
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface remove_value
+    !! Remove all matching values from an array
+    module procedure remove_value_i
+    module procedure remove_value_r
+    module procedure remove_value_iarr
+  end interface remove_value
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface swap
+    !! Swap two elements of an array
+    module procedure swap_i
+    module procedure swap_r
+    module procedure swap_c
+  end interface swap
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface alloc
+    !! Allocate an array. If it's allocated, free the array first
+    module procedure alloc_1D_int
+    module procedure alloc_1D_real
+    module procedure alloc_1D_cplx
+    module procedure alloc_2D_int
+    module procedure alloc_2D_real
+    module procedure alloc_2D_cplx
+    module procedure alloc_3D_int
+    module procedure alloc_3D_real
+    module procedure alloc_3D_cplx
+  end interface alloc
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface dealloc
+    !! Deallocate an array. If it isn't allocated, do nothing.
+    module procedure dealloc_1D_int
+    module procedure dealloc_1D_real
+    module procedure dealloc_1D_cplx
+    module procedure dealloc_2D_int
+    module procedure dealloc_2D_real
+    module procedure dealloc_2D_cplx
+    module procedure dealloc_3D_int
+    module procedure dealloc_3D_real
+    module procedure dealloc_3D_cplx
+  end interface dealloc
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface bubble_sort
+    module procedure bubble_sort_int
+    module procedure bubble_sort_real
+    module procedure bubble_sort_int_by_real
+    module procedure bubble_sort_real_by_real
+    module procedure bubble_sort_cplx_by_real
+  end interface bubble_sort
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface binary_search
+    !! Binary search through a sorted array
+    module procedure binary_search_r
+  end interface binary_search
+
+  ! ---------------------------------------------------------------------------------------------------!
+  interface interpolation_search
+    !! Interpolation (linear) search through a sorted array
+    module procedure interpolation_search_r
+  end interface interpolation_search
+
+  ! ===================================================================================================!
+  contains
+  ! ===================================================================================================!
+
+  ! ---------------------------------------------------------------------------------------------------!
+  ! APPEND INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine append_i(arr, new)
+    !! Append element "new" to array "arr"
 
-  implicit none
+    implicit none
 
-  real(rp), intent(in)                 :: new
-  real(rp), intent(inout), allocatable :: arr(:)
+    integer(ip), intent(in)                 :: new
+    integer(ip), intent(inout), allocatable :: arr(:)
 
-  select case(allocated(arr))
-  case(.true.)
-    arr = [arr, new]
-  case(.false.)
-    arr = [new]
-  end select
+    select case(allocated(arr))
+    case(.true.)
+      arr = [arr, new]
+    case(.false.)
+      arr = [new]
+    end select
 
-end subroutine append_r
-! ---------------------------------------------------------------------------------------------------!
-subroutine append_c(arr, new)
-  !! Append element "new" to array "arr"
+  end subroutine append_i
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine append_r(arr, new)
+    !! Append element "new" to array "arr"
 
-  implicit none
+    implicit none
 
-  complex(rp), intent(in)                 :: new
-  complex(rp), intent(inout), allocatable :: arr(:)
+    real(rp), intent(in)                 :: new
+    real(rp), intent(inout), allocatable :: arr(:)
 
-  select case(allocated(arr))
-  case(.true.)
-    arr = [arr, new]
-  case(.false.)
-    arr = [new]
-  end select
+    select case(allocated(arr))
+    case(.true.)
+      arr = [arr, new]
+    case(.false.)
+      arr = [new]
+    end select
 
-end subroutine append_c
+  end subroutine append_r
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine append_c(arr, new)
+    !! Append element "new" to array "arr"
 
-! ---------------------------------------------------------------------------------------------------!
-! APPEND_UNIQ INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-subroutine append_uniq_i(arr, new)
-  !! Append unique element "new" to array "arr"
+    implicit none
 
-  implicit none
+    complex(rp), intent(in)                 :: new
+    complex(rp), intent(inout), allocatable :: arr(:)
 
-  integer(ip), intent(in)                 :: new
-  integer(ip), intent(inout), allocatable :: arr(:)
+    select case(allocated(arr))
+    case(.true.)
+      arr = [arr, new]
+    case(.false.)
+      arr = [new]
+    end select
 
-  select case(allocated(arr))
-  case(.true.)
-    if(any(arr .eq. new)) return
-    arr = [arr, new]
-  case(.false.)
-    arr = [new]
-  end select
+  end subroutine append_c
 
-end subroutine append_uniq_i
+  ! ---------------------------------------------------------------------------------------------------!
+  ! APPEND_UNIQ INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine append_uniq_i(arr, new)
+    !! Append unique element "new" to array "arr"
 
-! ---------------------------------------------------------------------------------------------------!
-! REMOVE_VALUE INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-subroutine remove_value_i(arr, val)
-  !! Remove all matches of "val" from an array "arr"
+    implicit none
 
-  implicit none
+    integer(ip), intent(in)                 :: new
+    integer(ip), intent(inout), allocatable :: arr(:)
 
-  integer(ip), intent(inout), allocatable :: arr(:)
-  integer(ip), intent(in)  :: val
-  integer(ip), allocatable :: tmp(:)
+    select case(allocated(arr))
+    case(.true.)
+      if(any(arr .eq. new)) return
+      arr = [arr, new]
+    case(.false.)
+      arr = [new]
+    end select
 
-  integer(ip) :: k
-  integer(ip) :: l
-  integer(ip) :: u
+  end subroutine append_uniq_i
 
-  l = lbound(arr, 1)
-  u = ubound(arr, 1)
+  ! ---------------------------------------------------------------------------------------------------!
+  ! REMOVE_VALUE INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine remove_value_i(arr, val)
+    !! Remove all matches of "val" from an array "arr"
 
-  if(.not.allocated(arr)) return
+    implicit none
 
-  do k = l, u
-    if(val .ne. arr(k)) call append(tmp, arr(k))
-  enddo
+    integer(ip), intent(inout), allocatable :: arr(:)
+    integer(ip), intent(in)  :: val
+    integer(ip), allocatable :: tmp(:)
 
-  if(.not.allocated(tmp))  then
-    deallocate(arr)
-    return
-  endif
+    integer(ip) :: k
+    integer(ip) :: l
+    integer(ip) :: u
 
-  arr = tmp
+    l = lbound(arr, 1)
+    u = ubound(arr, 1)
 
-end subroutine remove_value_i
-! ---------------------------------------------------------------------------------------------------!
-subroutine remove_value_iarr(arr, vals)
-  !! Remove all matching values in array "vals" from array "arr"
+    if(.not.allocated(arr)) return
 
-  implicit none
+    do k = l, u
+      if(val .ne. arr(k)) call append(tmp, arr(k))
+    enddo
 
-  integer(ip), intent(inout), allocatable :: arr(:)
-  integer(ip), intent(in)  :: vals(:)
-  integer(ip), allocatable :: tmp(:)
+    call move_alloc(tmp, arr)
 
-  integer(ip) :: k
-  integer(ip) :: l
-  integer(ip) :: u
+  end subroutine remove_value_i
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine remove_value_r(arr, val, tol_in)
+    !! Remove all matches of "val" from an array "arr"
 
-  l = lbound(arr, 1)
-  u = ubound(arr, 1)
+    use constants, only: zero
 
-  if(.not.allocated(arr)) return
+    implicit none
 
-  do k = l, u
-    if(.not.any(vals.eq.arr(k))) call append(tmp, arr(k))
-  enddo
+    real(rp), intent(inout), allocatable :: arr(:)
+    real(rp), intent(in)  :: val
+    real(rp), intent(in), optional  :: tol_in
+      !! The tolerance at which values are considered to match.
+      !! Default: 0.0 (exact matches; should probably only be used to match with 0.0)
+    real(rp), allocatable :: tmp(:)
 
-  if(.not.allocated(tmp))  then
-    deallocate(arr)
-    return
-  endif
+    integer(ip) :: k
+    integer(ip) :: l
+    integer(ip) :: u
 
-  arr = tmp
+    real(rp) :: tol = zero
 
-end subroutine remove_value_iarr
+    if(present(tol_in)) tol = tol_in
 
-! ---------------------------------------------------------------------------------------------------!
-! ALLOC INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-!  1D
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_1D_int(arr, n)
+    l = lbound(arr, 1)
+    u = ubound(arr, 1)
 
-  implicit none
+    if(.not.allocated(arr)) return
 
-  integer(ip), intent(in) :: n
-  integer(ip), intent(inout), allocatable :: arr(:)
+    do k = l, u
+      if(abs(arr(k) - val) .gt. tol) call append(tmp, arr(k))
+    enddo
 
-  call dealloc(arr)
-  allocate( arr(n) )
+    call move_alloc(tmp, arr)
 
-end subroutine alloc_1D_int
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_1D_real(arr,n)
+  end subroutine remove_value_r
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine remove_value_iarr(arr, vals)
+    !! Remove all matching values in array "vals" from array "arr"
 
-  implicit none
+    implicit none
 
-  integer(ip),  intent(in) :: n
-  real(rp), intent(inout), allocatable :: arr(:)
+    integer(ip), intent(inout), allocatable :: arr(:)
+    integer(ip), intent(in)  :: vals(:)
+    integer(ip), allocatable :: tmp(:)
 
-  call dealloc(arr)
-  allocate( arr(n) )
+    integer(ip) :: k
+    integer(ip) :: l
+    integer(ip) :: u
 
-end subroutine alloc_1D_real
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_1D_cplx(arr,n)
+    l = lbound(arr, 1)
+    u = ubound(arr, 1)
 
-  implicit none
+    if(.not.allocated(arr)) return
 
-  integer(ip),     intent(in) :: n
-  complex(rp), intent(inout), allocatable :: arr(:)
+    do k = l, u
+      if(.not.any(vals.eq.arr(k))) call append(tmp, arr(k))
+    enddo
 
-  call dealloc(arr)
-  allocate( arr(n) )
+    call move_alloc(tmp, arr)
 
-end subroutine alloc_1D_cplx
-! ---------------------------------------------------------------------------------------------------!
-!  2D
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_2D_int(arr, n, m)
+  end subroutine remove_value_iarr
 
-  implicit none
+  ! ---------------------------------------------------------------------------------------------------!
+  ! ALLOC INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  !  1D
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_1D_int(arr, n)
 
-  integer(ip), intent(in) :: n
-  integer(ip), intent(in) :: m
-  integer(ip), intent(inout), allocatable :: arr(:,:)
+    implicit none
 
-  call dealloc(arr)
-  allocate( arr(n, m) )
+    integer(ip), intent(in) :: n
+    integer(ip), intent(inout), allocatable :: arr(:)
 
-end subroutine alloc_2D_int
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_2D_real(arr, n, m)
+    call dealloc(arr)
+    allocate( arr(n) )
 
-  implicit none
+  end subroutine alloc_1D_int
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_1D_real(arr,n)
 
-  integer(ip), intent(in) :: n
-  integer(ip), intent(in) :: m
-  real(rp), intent(inout), allocatable :: arr(:,:)
+    implicit none
 
-  call dealloc(arr)
-  allocate( arr(n, m) )
+    integer(ip),  intent(in) :: n
+    real(rp), intent(inout), allocatable :: arr(:)
 
-end subroutine alloc_2D_real
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_2D_cplx(arr, n, m)
+    call dealloc(arr)
+    allocate( arr(n) )
 
-  implicit none
+  end subroutine alloc_1D_real
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_1D_cplx(arr,n)
 
-  integer(ip), intent(in) :: n
-  integer(ip), intent(in):: m
-  complex(rp), intent(inout), allocatable :: arr(:,:)
+    implicit none
 
-  call dealloc(arr)
-  allocate( arr(n, m) )
+    integer(ip),     intent(in) :: n
+    complex(rp), intent(inout), allocatable :: arr(:)
 
-end subroutine alloc_2D_cplx
-! ---------------------------------------------------------------------------------------------------!
-!  3D
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_3D_int(arr, n, m, l)
+    call dealloc(arr)
+    allocate( arr(n) )
 
-  implicit none
+  end subroutine alloc_1D_cplx
+  ! ---------------------------------------------------------------------------------------------------!
+  !  2D
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_2D_int(arr, n, m)
 
-  integer(ip), intent(in) :: n
-  integer(ip), intent(in) :: m
-  integer(ip), intent(in) :: l
-  integer(ip), intent(inout), allocatable :: arr(:,:,:)
+    implicit none
 
-  call dealloc(arr)
-  allocate( arr(n, m, l) )
+    integer(ip), intent(in) :: n
+    integer(ip), intent(in) :: m
+    integer(ip), intent(inout), allocatable :: arr(:,:)
 
-end subroutine alloc_3D_int
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_3D_real(arr, n, m, l)
+    call dealloc(arr)
+    allocate( arr(n, m) )
 
-  implicit none
+  end subroutine alloc_2D_int
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_2D_real(arr, n, m)
 
-  integer(ip), intent(in) :: n
-  integer(ip), intent(in) :: m
-  integer(ip), intent(in) :: l
+    implicit none
 
-  real(rp), intent(inout), allocatable :: arr(:,:,:)
-  call dealloc(arr)
-  allocate( arr(n, m, l) )
+    integer(ip), intent(in) :: n
+    integer(ip), intent(in) :: m
+    real(rp), intent(inout), allocatable :: arr(:,:)
 
-end subroutine alloc_3D_real
-! ---------------------------------------------------------------------------------------------------!
-subroutine alloc_3D_cplx(arr, n, m, l)
+    call dealloc(arr)
+    allocate( arr(n, m) )
 
-  implicit none
+  end subroutine alloc_2D_real
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_2D_cplx(arr, n, m)
 
-  integer(ip), intent(in) :: n
-  integer(ip), intent(in) :: m
-  integer(ip), intent(in) :: l
-  complex(rp), intent(inout), allocatable :: arr(:,:,:)
+    implicit none
 
-  call dealloc(arr)
-  allocate( arr(n, m, l) )
+    integer(ip), intent(in) :: n
+    integer(ip), intent(in):: m
+    complex(rp), intent(inout), allocatable :: arr(:,:)
 
-end subroutine alloc_3D_cplx
+    call dealloc(arr)
+    allocate( arr(n, m) )
 
-! ---------------------------------------------------------------------------------------------------!
-!  DEALLOC INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-!  1D
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_1D_int(arr)
+  end subroutine alloc_2D_cplx
+  ! ---------------------------------------------------------------------------------------------------!
+  !  3D
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_3D_int(arr, n, m, l)
 
-  implicit none
+    implicit none
 
-  integer(ip), intent(inout), allocatable :: arr(:)
+    integer(ip), intent(in) :: n
+    integer(ip), intent(in) :: m
+    integer(ip), intent(in) :: l
+    integer(ip), intent(inout), allocatable :: arr(:,:,:)
 
-  if(allocated(arr)) deallocate(arr)
+    call dealloc(arr)
+    allocate( arr(n, m, l) )
 
-end subroutine dealloc_1D_int
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_1D_real(arr)
+  end subroutine alloc_3D_int
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_3D_real(arr, n, m, l)
 
-  implicit none
+    implicit none
 
-  real(rp), intent(inout), allocatable :: arr(:)
+    integer(ip), intent(in) :: n
+    integer(ip), intent(in) :: m
+    integer(ip), intent(in) :: l
 
-  if(allocated(arr)) deallocate(arr)
+    real(rp), intent(inout), allocatable :: arr(:,:,:)
+    call dealloc(arr)
+    allocate( arr(n, m, l) )
 
-end subroutine dealloc_1D_real
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_1D_cplx(arr)
+  end subroutine alloc_3D_real
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine alloc_3D_cplx(arr, n, m, l)
 
-  implicit none
+    implicit none
 
-  complex(rp), intent(inout), allocatable :: arr(:)
+    integer(ip), intent(in) :: n
+    integer(ip), intent(in) :: m
+    integer(ip), intent(in) :: l
+    complex(rp), intent(inout), allocatable :: arr(:,:,:)
 
-  if(allocated(arr)) deallocate(arr)
+    call dealloc(arr)
+    allocate( arr(n, m, l) )
 
-end subroutine dealloc_1D_cplx
-! ---------------------------------------------------------------------------------------------------!
-!  2D
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_2D_int(arr)
+  end subroutine alloc_3D_cplx
 
-  implicit none
+  ! ---------------------------------------------------------------------------------------------------!
+  !  DEALLOC INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  !  1D
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_1D_int(arr)
 
-  integer(ip), intent(inout), allocatable :: arr(:,:)
+    implicit none
 
-  if(allocated(arr)) deallocate(arr)
+    integer(ip), intent(inout), allocatable :: arr(:)
 
-end subroutine dealloc_2D_int
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_2D_real(arr)
+    if(allocated(arr)) deallocate(arr)
 
-  implicit none
+  end subroutine dealloc_1D_int
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_1D_real(arr)
 
-  real(rp), intent(inout), allocatable :: arr(:,:)
+    implicit none
 
-  if(allocated(arr)) deallocate(arr)
+    real(rp), intent(inout), allocatable :: arr(:)
 
-end subroutine dealloc_2D_real
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_2D_cplx(arr)
+    if(allocated(arr)) deallocate(arr)
 
-  implicit none
+  end subroutine dealloc_1D_real
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_1D_cplx(arr)
 
-  complex(rp), intent(inout), allocatable :: arr(:,:)
+    implicit none
 
-  if(allocated(arr)) deallocate(arr)
+    complex(rp), intent(inout), allocatable :: arr(:)
 
-end subroutine dealloc_2D_cplx
-! ---------------------------------------------------------------------------------------------------!
-!  3D
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_3D_int(arr)
+    if(allocated(arr)) deallocate(arr)
 
-  implicit none
+  end subroutine dealloc_1D_cplx
+  ! ---------------------------------------------------------------------------------------------------!
+  !  2D
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_2D_int(arr)
 
-  integer(ip), intent(inout), allocatable :: arr(:,:,:)
+    implicit none
 
-  if(allocated(arr)) deallocate(arr)
+    integer(ip), intent(inout), allocatable :: arr(:,:)
 
-end subroutine dealloc_3D_int
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_3D_real(arr)
+    if(allocated(arr)) deallocate(arr)
 
-  implicit none
+  end subroutine dealloc_2D_int
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_2D_real(arr)
 
-  real(rp), intent(inout), allocatable :: arr(:,:,:)
+    implicit none
 
-  if(allocated(arr)) deallocate(arr)
+    real(rp), intent(inout), allocatable :: arr(:,:)
 
-end subroutine dealloc_3D_real
-! ---------------------------------------------------------------------------------------------------!
-subroutine dealloc_3D_cplx(arr)
+    if(allocated(arr)) deallocate(arr)
 
-  implicit none
+  end subroutine dealloc_2D_real
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_2D_cplx(arr)
 
-  complex(rp), intent(inout), allocatable :: arr(:,:,:)
+    implicit none
 
-  if(allocated(arr)) deallocate(arr)
+    complex(rp), intent(inout), allocatable :: arr(:,:)
 
-end subroutine dealloc_3D_cplx
+    if(allocated(arr)) deallocate(arr)
 
-! ---------------------------------------------------------------------------------------------------!
-! BINARY_SEARCH INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-pure function binary_search_r(arr,x) result(m)
-  !! Binary search through a sorted array, return index i where arr(i) is closest to x
-  implicit none
-  real(rp), intent(in) :: arr(:)
-  real(rp), intent(in) :: x
-  integer(ip) :: m
-  integer(ip) :: l,u
-  integer(ip) :: ll,uu
-  l = lbound(arr,1)
-  u = ubound(arr,1)
-  if(x.le.arr(l)) then
-    m = l
-    return
-  elseif(x.ge.arr(u)) then
-    m = u
-    return
-  endif
-  ll = l
-  uu = u
-  do while(ll.le.uu)
-    m = (ll+uu) / 2
-    if(arr(m).lt.x) ll = m + 1
-    if(arr(m).gt.x) uu = m - 1
-  enddo
-end function binary_search_r
+  end subroutine dealloc_2D_cplx
+  ! ---------------------------------------------------------------------------------------------------!
+  !  3D
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_3D_int(arr)
 
-! ---------------------------------------------------------------------------------------------------!
-! INTERPOLATION_SEARCH INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-pure function interpolation_search_r(arr,x) result(m)
-  ! Interpolation (linear) search through a sorted array, return index i where arr(i) is closest to x
-  ! Returns smallest bound if x is below the smallest element
-  ! Returns largest  bound if x is above the largest  element
+    implicit none
 
-  implicit none
+    integer(ip), intent(inout), allocatable :: arr(:,:,:)
 
-  real(rp), intent(in) :: arr(:)
-  real(rp), intent(in) :: x
+    if(allocated(arr)) deallocate(arr)
 
-  integer(ip) :: m
-  integer(ip) :: l
-  integer(ip) :: u
-  integer(ip) :: ll
-  integer(ip) :: uu
+  end subroutine dealloc_3D_int
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_3D_real(arr)
 
-  l = lbound(arr,1)
-  u = ubound(arr,1)
+    implicit none
 
-  if(x .le. arr(l)) then
+    real(rp), intent(inout), allocatable :: arr(:,:,:)
 
-    m = l
-    return
+    if(allocated(arr)) deallocate(arr)
 
-  elseif(x .ge. arr(u)) then
+  end subroutine dealloc_3D_real
+  ! ---------------------------------------------------------------------------------------------------!
+  subroutine dealloc_3D_cplx(arr)
 
-    m = u
-    return
+    implicit none
 
-  endif
+    complex(rp), intent(inout), allocatable :: arr(:,:,:)
 
-  ll = l
-  uu = u
+    if(allocated(arr)) deallocate(arr)
 
-  do while ( arr(uu) .ne. arr(ll) .AND. x .ge. arr(ll) .AND. x .le. arr(uu) )
+  end subroutine dealloc_3D_cplx
 
-    m = ll + floor( (x - arr(ll)) * (uu - ll) / (arr(uu) - arr(ll)) )
+  ! ---------------------------------------------------------------------------------------------------!
+  ! BINARY_SEARCH INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  pure function binary_search_r(arr,x) result(m)
+    !! Binary search through a sorted array, return index i where arr(i) is closest to x
+    implicit none
+    real(rp), intent(in) :: arr(:)
+    real(rp), intent(in) :: x
+    integer(ip) :: m
+    integer(ip) :: l,u
+    integer(ip) :: ll,uu
+    l = lbound(arr,1)
+    u = ubound(arr,1)
+    if(x.le.arr(l)) then
+      m = l
+      return
+    elseif(x.ge.arr(u)) then
+      m = u
+      return
+    endif
+    ll = l
+    uu = u
+    do while(ll.le.uu)
+      m = (ll+uu) / 2
+      if(arr(m).lt.x) ll = m + 1
+      if(arr(m).gt.x) uu = m - 1
+    enddo
+  end function binary_search_r
 
-    if(arr(m) .lt. x) then
+  ! ---------------------------------------------------------------------------------------------------!
+  ! INTERPOLATION_SEARCH INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  pure function interpolation_search_r(arr,x) result(m)
+    ! Interpolation (linear) search through a sorted array, return index i where arr(i) is closest to x
+    ! Returns smallest bound if x is below the smallest element
+    ! Returns largest  bound if x is above the largest  element
 
-      ll = m + 1
+    implicit none
 
-    elseif(arr(m) .gt. x) then
+    real(rp), intent(in) :: arr(:)
+    real(rp), intent(in) :: x
 
-      uu = m - 1
+    integer(ip) :: m
+    integer(ip) :: l
+    integer(ip) :: u
+    integer(ip) :: ll
+    integer(ip) :: uu
 
-    else
+    l = lbound(arr,1)
+    u = ubound(arr,1)
 
+    if(x .le. arr(l)) then
+
+      m = l
+      return
+
+    elseif(x .ge. arr(u)) then
+
+      m = u
       return
 
     endif
 
-  enddo
+    ll = l
+    uu = u
 
-end function interpolation_search_r
+    do while ( arr(uu) .ne. arr(ll) .AND. x .ge. arr(ll) .AND. x .le. arr(uu) )
 
-! ---------------------------------------------------------------------------------------------------!
-! SWAP INTERFACE
-! ---------------------------------------------------------------------------------------------------!
-pure function swap_i(v, i, j) result(w)
-  !! Swap two elements of an array
+      m = ll + floor( (x - arr(ll)) * (uu - ll) / (arr(uu) - arr(ll)) )
 
-  implicit none
+      if(arr(m) .lt. x) then
 
-  integer(ip), intent(in) :: i
-  integer(ip), intent(in) :: j
-  integer(ip), intent(in) :: v(:)
+        ll = m + 1
 
-  integer(ip) :: w(size(v, 1))
+      elseif(arr(m) .gt. x) then
 
-  w = v
+        uu = m - 1
 
-  if(i .eq. j) return
+      else
 
-  w(i) = v(j)
-  w(j) = v(i)
+        return
 
-end function swap_i
-! ---------------------------------------------------------------------------------------------------!
-pure function swap_r(v, i, j) result(w)
-  !! Swap two elements of an array
+      endif
 
-  implicit none
+    enddo
 
-  integer(ip), intent(in) :: i
-  integer(ip), intent(in) :: j
+  end function interpolation_search_r
 
-  real(rp), intent(in) :: v(:)
-  real(rp) :: w(size(v, 1))
+  ! ---------------------------------------------------------------------------------------------------!
+  ! SWAP INTERFACE
+  ! ---------------------------------------------------------------------------------------------------!
+  pure function swap_i(v, i, j) result(w)
+    !! Swap two elements of an array
 
-  w = v
+    implicit none
 
-  if(i .eq. j) return
+    integer(ip), intent(in) :: i
+    integer(ip), intent(in) :: j
+    integer(ip), intent(in) :: v(:)
 
-  w(i) = v(j)
-  w(j) = v(i)
+    integer(ip) :: w(size(v, 1))
 
-end function swap_r
-! ---------------------------------------------------------------------------------------------------!
-pure function swap_c(v, i, j) result(w)
-  !! Swap two elements of an array
+    w = v
 
-  implicit none
+    if(i .eq. j) return
 
-  integer(ip), intent(in) :: i
-  integer(ip), intent(in) :: j
-  complex(rp), intent(in) :: v(:)
-  complex(rp) :: w(size(v, 1))
+    w(i) = v(j)
+    w(j) = v(i)
 
-  w = v
+  end function swap_i
+  ! ---------------------------------------------------------------------------------------------------!
+  pure function swap_r(v, i, j) result(w)
+    !! Swap two elements of an array
 
-  if(i .eq. j) return
+    implicit none
 
-  w(i) = v(j)
-  w(j) = v(i)
+    integer(ip), intent(in) :: i
+    integer(ip), intent(in) :: j
 
-end function swap_c
+    real(rp), intent(in) :: v(:)
+    real(rp) :: w(size(v, 1))
+
+    w = v
+
+    if(i .eq. j) return
+
+    w(i) = v(j)
+    w(j) = v(i)
+
+  end function swap_r
+  ! ---------------------------------------------------------------------------------------------------!
+  pure function swap_c(v, i, j) result(w)
+    !! Swap two elements of an array
+
+    implicit none
+
+    integer(ip), intent(in) :: i
+    integer(ip), intent(in) :: j
+    complex(rp), intent(in) :: v(:)
+    complex(rp) :: w(size(v, 1))
+
+    w = v
+
+    if(i .eq. j) return
+
+    w(i) = v(j)
+    w(j) = v(i)
+
+  end function swap_c
+
+  ! --------------------------------------------------------------------------------------------------- !
+  !  SORT INTERFACE
+  ! --------------------------------------------------------------------------------------------------- !
+  pure function bubble_sort_int(arr) result(sorted)
+    !! Bubble sort array of size N in increasing order
+
+    implicit none
+
+    integer, intent(in) :: arr(:)
+
+    logical :: swapped
+    integer :: sorted(size(arr))
+    integer :: i
+    integer :: j
+
+    sorted = arr
+
+    associate(n => size(arr))
+
+      do j = n - 1, 1, -1
+
+        swapped = .false.
+
+        do i = 1,j
+
+          if(sorted(i) .le. sorted(i + 1)) cycle
+
+          call swapvars(sorted(i), sorted(i + 1))
+
+          swapped = .true.
+
+        enddo
+
+        if(.not. swapped) exit
+
+      enddo
+
+    end associate
+
+  end function bubble_sort_int
+  ! --------------------------------------------------------------------------------------------------- !
+  pure function bubble_sort_real(arr) result(sorted)
+    !! Bubble sort array of size N in increasing order
+
+    implicit none
+
+    real(rp), intent(in) :: arr(:)
+    real(rp) :: sorted(size(arr))
+
+    logical :: swapped
+    integer :: i
+    integer :: j
+
+    sorted = arr
+
+    associate(n => size(arr))
+
+      do j = n - 1, 1, -1
+
+        swapped = .false.
+
+        do i = 1, j
+
+          if(sorted(i) .le. sorted(i + 1)) cycle
+
+          call swapvars(sorted(i), sorted(i + 1))
+
+          swapped = .true.
+
+        enddo
+
+        if(.not. swapped) exit
+
+      enddo
+
+    end associate
+
+  end function bubble_sort_real
+  ! --------------------------------------------------------------------------------------------------- !
+  pure function bubble_sort_int_by_real(arr,rarr) result(sorted)
+    !! Bubble swap for an integer array ARR using a real array RARR to determine order of elements.
+    !! RARR could be, e.g., ARR % re, ARR % im, abs(ARR), etc.
+
+    implicit none
+
+    real(rp),    intent(in) :: rarr(:)
+    integer,     intent(in) :: arr(size(rarr))
+
+    integer  :: sorted(size(rarr))
+    real(rp) :: rsorted(size(rarr))
+
+    logical :: swapped
+    integer :: i,j
+
+    sorted  = arr
+    rsorted = rarr
+
+    associate(n => size(rarr))
+
+      do j = n - 1, 1, -1
+
+        swapped = .false.
+
+        do i = 1, j
+
+          if(rsorted(i) .le. rsorted(i + 1)) cycle
+
+          call swapvars(sorted(i), sorted(i + 1))
+
+          call swapvars(rsorted(i), rsorted(i + 1))
+
+          swapped = .true.
+
+        enddo
+
+        if(.not. swapped) exit
+
+      enddo
+
+    end associate
+
+  end function bubble_sort_int_by_real
+  ! --------------------------------------------------------------------------------------------------- !
+  pure function bubble_sort_real_by_real(arr,rarr) result(sorted)
+    !! Bubble swap for a real array ARR using a real array RARR to determine order of elements
+    !! RARR could be, e.g., ARR % re, ARR % im, abs(ARR), etc.
+
+    implicit none
+
+    real(rp), intent(in) :: rarr(:)
+    real(rp), intent(in) :: arr(size(rarr))
+
+    logical :: swapped
+    integer :: i,j
+    real(rp) :: rsorted(size(rarr))
+    real(rp) :: sorted(size(rarr))
+
+    sorted  = arr
+    rsorted = rarr
+
+    associate(n => size(rarr))
+
+      do j = n - 1, 1, -1
+
+        swapped = .false.
+
+        do i = 1, j
+
+          if(rsorted(i) .le. rsorted(i + 1)) cycle
+
+          call swapvars(sorted(i), sorted(i + 1))
+
+          call swapvars(rsorted(i), rsorted(i + 1))
+
+          swapped = .true.
+
+        enddo
+
+        if(.not. swapped) exit
+
+      enddo
+
+    end associate
+
+  end function bubble_sort_real_by_real
+  ! --------------------------------------------------------------------------------------------------- !
+  pure function bubble_sort_cplx_by_real(arr,rarr) result(sorted)
+    !! Bubble swap for a complex array ARR using a real array RARR to determine order of elements
+    !! RARR could be, e.g., ARR % re, ARR % im, abs(ARR), etc.
+
+    implicit none
+
+    real(rp),    intent(in) :: rarr(:)
+    complex(rp), intent(in) :: arr(size(rarr))
+
+    logical :: swapped
+    integer :: i,j
+    real(rp)    :: rsorted(size(rarr))
+    complex(rp) :: sorted(size(rarr))
+
+    sorted  = arr
+    rsorted = rarr
+
+    associate(n => size(rarr))
+
+      do j = n - 1, 1, -1
+
+        swapped = .false.
+
+        do i = 1, j
+
+          if(rsorted(i) .le. rsorted(i + 1)) cycle
+
+          call swapvars(sorted(i), sorted(i + 1))
+
+          call swapvars(rsorted(i), rsorted(i + 1))
+
+          swapped = .true.
+
+        enddo
+
+        if(.not. swapped) exit
+
+      enddo
+
+    end associate
+
+  end function bubble_sort_cplx_by_real
 
 ! ===================================================================================================!
 end module arrays

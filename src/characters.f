@@ -64,7 +64,6 @@ recursive function int2char0(i, n) result(output)
   character(:), allocatable :: frmt
 
   integer(ip) :: nn
-  integer(ip) :: nnn
 
   nn = ndigits(i)
 

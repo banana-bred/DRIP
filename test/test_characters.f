@@ -1,6 +1,6 @@
-! =================================================================================================================================!
+! =================================================================================================================================! module test_characters
 module test_characters
-
+! =================================================================================================================================! module test_characters
   use types,      only: ip
   use testdrive,  only: new_unittest, unittest_type, error_type, check
   use characters, only: add_trailing, int2char0, csgn, operator(+), ndigits, to_lower, to_upper
@@ -22,27 +22,31 @@ subroutine collect_characters(testsuite)
   type(unittest_type), allocatable, intent(out) :: testsuite(:)
     !! Collection of tests to run
 
-  testsuite = [                                                            &
-    new_unittest("csgn positive",            test_csgn_pos),               &
-    new_unittest("csgn zero",                test_csgn_zero),              &
-    new_unittest("csgn negative",            test_csgn_neg),               &
-    new_unittest("ndigits 0",                test_ndigits0),               &
-    new_unittest("ndigits 1",                test_ndigits1),               &
-    new_unittest("ndigits 10",               test_ndigits10),              &
-    new_unittest("ndigits -0",               test_ndigits0_minus),         &
-    new_unittest("ndigits -1",               test_ndigits1_minus),         &
-    new_unittest("ndigits -10",              test_ndigits10_minus),        &
-    new_unittest("add_trailing",             test_add_trailing),           &
-    new_unittest("add_trailing redundant",   test_add_trailing_redundant), &
-    new_unittest("add_trailing (blank)",     test_add_trailing_blank),     &
-    new_unittest("to_lower",                 test_to_lower),               &
-    new_unittest("to_lower (blank)",         test_to_lower),               &
-    new_unittest("to_upper",                 test_to_upper),               &
-    new_unittest("to_upper (blank)",         test_to_upper),               &
-    new_unittest("char plus",                test_char_plus),              &
-    new_unittest("operato(+) (left blank)",  test_char_plus_blank_left),   &
-    new_unittest("operato(+) (right blank)", test_char_plus_blank_right),  &
-    new_unittest("operato(+) (both blank)",  test_char_plus_blank_double)  &
+  testsuite = [                                                             &
+    new_unittest("csgn positive",             test_csgn_pos),               &
+    new_unittest("csgn zero",                 test_csgn_zero),              &
+    new_unittest("csgn negative",             test_csgn_neg),               &
+    new_unittest("ndigits 0",                 test_ndigits0),               &
+    new_unittest("ndigits 1",                 test_ndigits1),               &
+    new_unittest("ndigits 10",                test_ndigits10),              &
+    new_unittest("ndigits 99",                test_ndigits99),              &
+    new_unittest("ndigits 100",               test_ndigits100),             &
+    new_unittest("ndigits -0",                test_ndigits0_minus),         &
+    new_unittest("ndigits -1",                test_ndigits1_minus),         &
+    new_unittest("ndigits -10",               test_ndigits10_minus),        &
+    new_unittest("ndigits -99",               test_ndigits99_minus),        &
+    new_unittest("ndigits -100",              test_ndigits100_minus),       &
+    new_unittest("add_trailing",              test_add_trailing),           &
+    new_unittest("add_trailing redundant",    test_add_trailing_redundant), &
+    new_unittest("add_trailing (blank)",      test_add_trailing_blank),     &
+    new_unittest("to_lower",                  test_to_lower),               &
+    new_unittest("to_lower (blank)",          test_to_lower),               &
+    new_unittest("to_upper",                  test_to_upper),               &
+    new_unittest("to_upper (blank)",          test_to_upper),               &
+    new_unittest("char plus",                 test_char_plus),              &
+    new_unittest("operator(+) (left blank)",  test_char_plus_blank_left),   &
+    new_unittest("operator(+) (right blank)", test_char_plus_blank_right),  &
+    new_unittest("operator(+) (both blank)",  test_char_plus_blank_double)  &
     ! new_unittest("invalid", test_invalid, should_fail=.true.) &
   ]
 
@@ -134,6 +138,30 @@ subroutine test_ndigits10_minus(error)
   call check(error, ndigits(-10_ip), 3_ip)
   if(allocated(error)) return
 end subroutine test_ndigits10_minus
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_ndigits99(error)
+  type(error_type), allocatable, intent(out) :: error
+  call check(error, ndigits(99_ip), 2_ip)
+  if(allocated(error)) return
+end subroutine test_ndigits99
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_ndigits99_minus(error)
+  type(error_type), allocatable, intent(out) :: error
+  call check(error, ndigits(-99_ip), 3_ip)
+  if(allocated(error)) return
+end subroutine test_ndigits99_minus
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_ndigits100(error)
+  type(error_type), allocatable, intent(out) :: error
+  call check(error, ndigits(100_ip), 3_ip)
+  if(allocated(error)) return
+end subroutine test_ndigits100
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_ndigits100_minus(error)
+  type(error_type), allocatable, intent(out) :: error
+  call check(error, ndigits(-100_ip), 4_ip)
+  if(allocated(error)) return
+end subroutine test_ndigits100_minus
 
 ! ---------------------------------------------------------------------------------------------------------------------------------!
 ! ADD_TRAILING TESTS
