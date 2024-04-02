@@ -3,7 +3,7 @@ module test_characters
 ! =================================================================================================================================! module test_characters
   use types,      only: ip
   use testdrive,  only: new_unittest, unittest_type, error_type, check
-  use characters, only: add_trailing, int2char0, csgn, operator(+), ndigits, to_lower, to_upper
+  use characters, only: add_trailing, int2char0, csgn, operator(+), ndigits, to_lower, to_upper, lower, upper
 
   implicit none
 
@@ -41,8 +41,12 @@ subroutine collect_characters(testsuite)
     new_unittest("add_trailing (blank)",      test_add_trailing_blank),     &
     new_unittest("to_lower",                  test_to_lower),               &
     new_unittest("to_lower (blank)",          test_to_lower),               &
+    new_unittest("lower",                     test_lower),                  &
+    new_unittest("lower (blank)",             test_lower),                  &
     new_unittest("to_upper",                  test_to_upper),               &
     new_unittest("to_upper (blank)",          test_to_upper),               &
+    new_unittest("upper",                     test_upper),                  &
+    new_unittest("upper (blank)",             test_upper),                  &
     new_unittest("char plus",                 test_char_plus),              &
     new_unittest("operator(+) (left blank)",  test_char_plus_blank_left),   &
     new_unittest("operator(+) (right blank)", test_char_plus_blank_right),  &
@@ -215,6 +219,26 @@ subroutine test_to_lower_blank(error)
 end subroutine test_to_lower_blank
 
 ! ---------------------------------------------------------------------------------------------------------------------------------!
+! LOWER TESTS
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_lower(error)
+  type(error_type), allocatable, intent(out) :: error
+  character(:), allocatable :: test
+  test = "tEsT18(\@%_dD]"
+  call check(error, lower(test), "test18(\@%_dd]")
+  if(allocated(error)) return
+end subroutine test_lower
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_lower_blank(error)
+  type(error_type), allocatable, intent(out) :: error
+  character(:), allocatable :: test
+  test = ""
+  call check(error, lower(test), "")
+  if(allocated(error)) return
+end subroutine test_lower_blank
+
+
+! ---------------------------------------------------------------------------------------------------------------------------------!
 ! TO_UPPER TESTS
 ! ---------------------------------------------------------------------------------------------------------------------------------!
 subroutine test_to_upper(error)
@@ -234,6 +258,25 @@ subroutine test_to_upper_blank(error)
   call check(error, test, "")
   if(allocated(error)) return
 end subroutine test_to_upper_blank
+
+! ---------------------------------------------------------------------------------------------------------------------------------!
+! UPPER TESTS
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_upper(error)
+  type(error_type), allocatable, intent(out) :: error
+  character(:), allocatable :: test
+  test = "tEsT18(\@%_dD]"
+  call check(error, upper(test), "TEST18(\@%_DD]")
+  if(allocated(error)) return
+end subroutine test_upper
+! ---------------------------------------------------------------------------------------------------------------------------------!
+subroutine test_upper_blank(error)
+  type(error_type), allocatable, intent(out) :: error
+  character(:), allocatable :: test
+  test = ""
+  call check(error, upper(test), "")
+  if(allocated(error)) return
+end subroutine test_upper_blank
 
 
 ! =================================================================================================================================!

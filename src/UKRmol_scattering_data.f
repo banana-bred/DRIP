@@ -29,6 +29,18 @@ contains
       !! of indices.
 
       ! -- determine point group and available indices
+        ! get point group, get size of point group
+        ! get electroic states for first geometry
+          ! determine degeneracies
+        ! loop over irreps
+          ! get channels for first geometry
+          ! ! We might have different channels for a different energy (so re-read channels for each energy IF energy independent)
+            ! otherwise, only read channels once
+          ! do the rest of the geometries
+          !geom loop
+            ! irrep loop
+
+        ! read denprop file to determine electronic state order for first file?
 
       ! -- read channels from their respective channel files
       !    READ FIRST GEOMETRY ONLY (for now)

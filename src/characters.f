@@ -16,7 +16,9 @@ module characters
   public :: ndigits
   public :: numeric
   public :: to_lower
+  public :: lower
   public :: to_upper
+  public :: upper
   public :: add_trailing
 
   interface s_hms
@@ -196,7 +198,7 @@ pure elemental subroutine to_lower(chr)
 
     if(ic .gt. uppercase_z) cycle
 
-    chr(i:i) = char(ic+32)
+    chr(i:i) = char(ic + 32)
 
   enddo
 
@@ -224,11 +226,74 @@ pure elemental subroutine to_upper(chr)
 
     if(ic .lt. lowercase_a) cycle
     if(ic .gt. lowercase_z) cycle
-    chr(i:i) = char(ic-32)
+    chr(i:i) = char(ic - 32)
 
   enddo
 
 end subroutine to_upper
+
+! ---------------------------------------------------------------------------------------------------------------------------------!
+pure function lower(chr) result(lower_chr)
+  !! converts a character to lower case
+
+  use constants, only: uppercase_a, uppercase_z
+
+  implicit none
+
+  character(*), intent(in) :: chr
+  character(:), allocatable :: lower_chr
+
+  integer(ip) :: i
+  integer(ip) :: n
+  integer(ip) :: ic
+
+  n = len(chr)
+  lower_chr = chr
+
+  do i = 1, n
+
+    ic = ichar(lower_chr(i:i))
+
+    if(ic .lt. uppercase_a) cycle
+
+    if(ic .gt. uppercase_z) cycle
+
+    lower_chr(i:i) = char(ic + 32)
+
+  enddo
+
+end function lower
+
+! ---------------------------------------------------------------------------------------------------------------------------------!
+pure function upper(chr) result(upper_chr)
+  !! converts a character to upper case
+
+  use constants, only: lowercase_a, lowercase_z
+
+  implicit none
+
+  character(*), intent(in) :: chr
+  character(:), allocatable :: upper_chr
+
+  integer(ip) :: i
+  integer(ip) :: n
+  integer(ip) :: ic
+
+  n = len(chr)
+  upper_chr = chr
+
+  do i = 1, n
+
+    ic = ichar(upper_chr(i:i))
+
+    if(ic .lt. lowercase_a) cycle
+    if(ic .gt. lowercase_z) cycle
+
+    upper_chr(i:i) = char(ic - 32)
+
+  enddo
+
+end function upper
 
 ! ---------------------------------------------------------------------------------------------------------------------------------!
 pure subroutine add_trailing(chr, trail)
