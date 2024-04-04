@@ -15,6 +15,7 @@ module system
 
   ! -- procedures
   public :: die
+  public :: error
   public :: warn
   public :: determine_system_properties
 
@@ -57,6 +58,15 @@ module system
 ! ================================================================================================================================ !
 contains
 ! ================================================================================================================================ !
+
+! --------------------------------------------------------------------------------------------------------------------------------- !
+subroutine error(message)
+  !! Print error messages to the screen without the WARNING prompt. This will typically precede a call to DIE
+  character(*), intent(in) :: message
+  write(stderr,*)
+  write(stderr,'("ERROR :: ", A)') message
+  write(stderr,*)
+end subroutine error
 
 ! --------------------------------------------------------------------------------------------------------------------------------- !
 subroutine die_1(message)

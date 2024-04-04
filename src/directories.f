@@ -17,6 +17,7 @@ module directories
   public :: read_directories
 
   ! -- variables
+  public :: input_directory
   public :: run_name
   public :: run_directory
   public :: spin_directory
