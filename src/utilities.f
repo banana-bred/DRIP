@@ -13,6 +13,7 @@ module utilities
   public is_even
   public swapvars
   public same_integers
+  public read_blank
 
   interface is_even
     module procedure is_even_integer
@@ -143,6 +144,17 @@ contains
     answer = .false.
     if(all(args .eq. args)) answer = .true.
   end function same_integers_4
+
+! -------------------------------------------------------------------------------------------------------------------------------- !
+subroutine read_blank(read_unit, num_read)
+  !! Reads num_read lines from unit read_unit, not storing any information. If num_read is not supplied, read one line.
+  implicit none
+  integer, intent(in)           :: read_unit
+  integer, intent(in), optional :: num_read
+  integer :: k, n
+  n = 1 ; if(present(num_read)) n = num_read
+  do k = 1, n ; read(read_unit,*) ; enddo
+end subroutine read_blank
 
 ! ================================================================================================================================ !
 end module utilities

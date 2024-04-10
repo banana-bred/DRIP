@@ -24,6 +24,7 @@ module symmetry
   public :: irrep_product
   public :: spin_name
   public :: determine_molpro_point_group
+  public :: irrep_name
 
   character(3), parameter :: available_point_groups(1) = ["C2V"]
   character(33), parameter :: abelian_point_groups = "C1, Cs, C2, Ci, C2v, C2h, D2, D2h"
@@ -283,6 +284,86 @@ contains
     end select
 
   end function determine_molpro_point_group
+
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  function irrep_name(irrep, point_group) result(output)
+    !! Given an irrep index in point_group, return the name of the corresponding irrep
+
+    implicit none
+
+    integer(ip), intent(in) :: irrep
+    character(*), intent(in) :: point_group
+
+    character(:), allocatable :: output
+
+    character(:), allocatable :: pg
+
+    pg = upper(trim(point_group))
+
+    select case(pg)
+    case('C1')
+      output = "A"
+
+    case('CS')
+      select case(irrep)
+        case(1) ; output =  "Ap"
+        case(2) ; output =  "App"
+      end select
+
+    case('C2')
+      select case(irrep)
+        case(1) ; output = "A"
+        case(2) ; output = "B"
+      end select
+
+    case('CI')
+      select case(irrep)
+        case(1) ; output = "Ag"
+        case(2) ; output = "Au"
+      end select
+
+    case('C2V')
+      select case(irrep)
+        case(1) ; output = "A1"
+        case(2) ; output = "A2"
+        case(3) ; output = "B1"
+        case(4) ; output = "B2"
+      end select
+
+    case('C2H')
+      select case(irrep)
+        case(1) ; output = "Ag"
+        case(2) ; output = "Au"
+        case(3) ; output = "Bg"
+        case(4) ; output = "Bu"
+      end select
+
+    case('D2')
+      select case(irrep)
+        case(1) ; output = "A"
+        case(2) ; output = "B1"
+        case(3) ; output = "B2"
+        case(4) ; output = "B3"
+      end select
+
+    case('D2H')
+      select case(irrep)
+        case(1) ; output = "Ag"
+        case(2) ; output = "Au"
+        case(3) ; output = "B1g"
+        case(4) ; output = "B1u"
+        case(5) ; output = "B2g"
+        case(6) ; output = "B2u"
+        case(7) ; output = "B3g"
+        case(8) ; output = "B3u"
+      end select
+
+    case default
+      call die("Unacceptable point group '" // point_group // "' given. Please choose one of " // abelian_point_groups // ".")
+
+    end select
+
+  end function irrep_name
 
 ! ================================================================================================================================ !
 end module symmetry

@@ -66,15 +66,23 @@ $globals_namelist !! Global variables that relate to the target or total system
 
   point_group= "c2v" !! The point group in which the UKRmol+ calculations were run.
 
-  target_projections = 0, 1, -1 !! Array containing the projections of the angular momentum of all electrons in the target (Λ) for  a given electronic state.
-                                !! The length of this array should be equal to the number of electronic ! states in the Abelian subgroup of the UKRmol+ calculations,
-                                !! including degeneracy (states with a ±|Λ| that isn't 0). For example, a molecule with the electronic structure
-                                !! (increasing energy towards the right) [[ X1Σ-, a1Δ, b1Σ+, A3Π ]] could have `target_projections = 0, -2, 2, 0, 1, -1`.
-                                !! Because the Δ state has Λ = ±2, the Π state Λ = ±1, and the sigma states only have one Λ = 0, by definition. For each degenerate
-                                !! state, the order shouldn't matter, i.e. `target_projections = 0, -2, 2, 0, 1, -1` should be the same as `target_projections = 0,  2,-2, 0, 1, -1`,
-                                !! but `target_projections = 0, -2, 2, 1, -1, 0` would give a different result.
-                                !! NOTE: Electronic states can cross. The value provided here should be the value for the FIRST SUPPLIED GEOMETRY.
-                                !! State crossings will be handled automatically
+  targ_ndegen = 1, 2, 2, 3, 3 !! Array of target states taking into account their degeneracy.
+                              !! The array 1, 2, 3, 4, 5 would be 5 non-degenerate states. If there
+                              !! are no degenerate target states in the calculation, this variable can be omitted.
+                              !! A calculation with doubly degenerate first and second excited state would
+                              !! have this variable contain the values 1, 2, 2, 3, 3. The ground state is 1,
+                              !! the first excited state is 2, 2 and the second excited state is 3, 3. The order
+                              !! given here must apply to the first geometry of the run.
+
+  targ_proj = 0, 1, -1 !! Array containing the projections of the angular momentum of all electrons in the target (Λ) for  a given electronic state.
+                       !! The length of this array should be equal to the number of electronic ! states in the Abelian subgroup of the UKRmol+ calculations,
+                       !! including degeneracy (states with a ±|Λ| that isn't 0). For example, a molecule with the electronic structure
+                       !! (increasing energy towards the right) [[ X1Σ-, a1Δ, b1Σ+, A3Π ]] could have `target_projections = 0, -2, 2, 0, 1, -1`.
+                       !! Because the Δ state has Λ = ±2, the Π state Λ = ±1, and the sigma states only have one Λ = 0, by definition. For each degenerate
+                       !! state, the order shouldn't matter, i.e. `target_projections = 0, -2, 2, 0, 1, -1` should be the same as `target_projections = 0,  2,-2, 0, 1, -1`,
+                       !! but `target_projections = 0, -2, 2, 1, -1, 0` would give a different result.
+                       !! NOTE: Electronic states can cross. The value provided here should be the value for the FIRST SUPPLIED GEOMETRY.
+                       !! State crossings will be handled automatically
 
 /
 

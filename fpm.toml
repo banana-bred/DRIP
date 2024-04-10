@@ -3,7 +3,7 @@ version = "0.1.0"
 license = "MIT"
 author = "Josh Forer"
 maintainer = "jbf2177@columbia.edu"
-copyright = "2023 Josh Forer"
+copyright = "2024 Josh Forer"
 
 [library]
 source-dir = "src"
