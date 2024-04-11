@@ -5,6 +5,7 @@ module UKRmol_scattering_data
 
   use types,           only: ip, rp
   use system,          only: die, stdout, iostat_ok
+  use symmetry,        only: point_group
   use iso_fortran_env, only: iostat_end
 
   implicit none
@@ -22,6 +23,7 @@ contains
     !! This subroutine reads the desired K-matrix and electronic channels from the UKRmol+ output nearest to the specified energy
 
     use control,     only: evaluation_energy_indices, evaluation_energies
+    use symmetry,    only: group_size, spin_name, irrep_name
     use characters,  only: char => int2char0
     use directories, only: ds => directory_separator, input_directory
 
@@ -35,21 +37,19 @@ contains
       !! This is to say the inrg is not the index inf EVALUATION_ENERGY_INDICES, but is used to index this array
       !! of indices.
 
-    integer, parameter :: nqchem = 3
+    integer(ip), parameter :: nqchem = 3
       !! The number of possible quantum chemistry codes to use with UKRmol+
-
-    integer :: nqchem_detected
-      !! The number of quantum chemistry output files detected
+    character(6), parameter :: quantum_chemistry_names(nqchem) = [ "molcas", "molpro", "psi4  " ]
+      !! The quantum chemistry codes that can be used with UKRmol+
 
     logical :: qchem_exists(nqchem)
       !! Array of logicals keeping track of which quantum chemistry codes are present
-
     logical :: exists
 
+    integer(ip) :: nqchem_detected
+      !! The number of quantum chemistry output files detected
     integer(ip) :: i
-
-    character(6), parameter :: quantum_chemistry_names(nqchem) = [ "molcas", "molpro", "psi4  " ]
-      !! The quantum chemistry codes that can be used with UKRmol+
+    integer(ip) :: irrep
 
     character(:), allocatable :: qchem_filename
       !! The name of the quantum chemistry output file
@@ -57,7 +57,9 @@ contains
       !! The name of the detected quantum chemistry software
     character(:), allocatable :: filename
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! -- check the first geometry to figure out the symmetry and channels
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! -- read the output of the quantum chemistry software used to calculate the target orbitals
     do i = 1, size(quantum_chemistry_names, 1)
@@ -81,9 +83,17 @@ contains
 
     ! -- get the target state info now from denprop.out
     filename = input_directory // ds // "geom1" // ds // "outputs" // ds // "target.denprop.out"
-    call read_targ(filename)
+    call read_target(filename)
 
     ! -- loop over all irreps, build all channels based on first geom
+    do irrep = 1, group_size(point_group)
+
+      filename = input_directory // ds // "collected_scattering_data" // ds // "channels" // ds // "channels.geom1." &
+                 // spin_name(spin) // "." // irrep_name(irrep, point_group)
+
+      call add_channels_from_file(filename)
+
+    enddo
       ! "true" channel index (nlλ)
       ! target state index
       ! target state degen index
@@ -130,7 +140,7 @@ contains
   subroutine determine_point_group(qchem_filename, qchem_name)
     !! Determine the point group of the calculations by reading the output of the quantum chemistry software (which contains
     !! the repeated input of the quantum chemistry software).
-    use symmetry,   only: point_group, determine_molpro_point_group
+    use symmetry,   only: determine_molpro_point_group
     use characters, only: upper
 
     implicit none
@@ -156,7 +166,7 @@ contains
       read(funit, '(A)', iostat = io) line
 
       if(io .eq. iostat_end) exit lines
-      if(io .ne. iostat_ok) call die("Problem reading data from file" // qchem_filename)
+      if(io .ne. iostat_ok) call die("Problem reading data from file " // qchem_filename)
 
       select case(qchem_name)
       case("molcas")
@@ -187,11 +197,11 @@ contains
   end subroutine determine_point_group
 
   ! ------------------------------------------------------------------------------------------------------------------------------ !
-  subroutine read_targ(denprop_filename)
+  subroutine read_target(denprop_filename)
     !! Read the first geometry's denprop.out to determine the number and properties of the target elecronic states
 
     use globals,   only: reduced_mass, natoms, targ, targ_ndegen, targ_proj
-    use symmetry,  only: convert_ukrmol_irrep, point_group
+    use symmetry,  only: convert_ukrmol_irrep
     use constants, only: au2amu
     use utilities, only: read_blank
 
@@ -232,7 +242,7 @@ contains
       read(funit, '(A)', iostat = io) line
 
       if(io .eq. iostat_end) exit lines
-      if(io .ne. iostat_ok) call die("Problem reading data from file" // denprop_filename)
+      if(io .ne. iostat_ok) call die("Problem reading data from file " // denprop_filename)
 
       if(line .eq. target_character) exit lines
 
@@ -272,7 +282,65 @@ contains
 
     enddo
 
-  end subroutine read_targ
+  end subroutine read_target
+
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  subroutine add_channels_from_file(channelfile)
+    !! Read the channels specified in the supplied channelfile
+
+    use control,   only: E2au => input_channel_energy2au
+    use utilities, only: read_blank
+
+    implicit none
+
+    character(*), intent(in) :: channelfile
+
+    logical :: exists
+
+    integer(ip) :: io
+    integer(ip) :: funit
+    integer(ip) :: ntarg
+    integer(ip) :: nchan
+    integer(ip) :: ichan
+    integer(ip) :: itarg
+    integer(ip) :: l
+    integer(ip) :: lambda
+    integer(ip) :: ichan_read
+    integer(ip) :: ijunk(1:4)
+
+    real(rp) :: E
+
+    real(rp) :: rjunk
+
+    character(:), allocatable :: filename
+
+    filename = trim(channelfile)
+
+    inquire(file = filename, exist = exists)
+
+    if(.not. exists) call die("Channel file " // filename // "does not exist.")
+
+    open(newunit = funit, file = filename)
+
+    call read_blank(funit, 2)
+    read(funit, *, iostat = io) ntarg, ijunk(1:2), nchan
+    if(io .ne. iostat_ok) call die("Problem reading data from file " // filename)
+    call read_blank(funit, ntarg + 1)
+
+    do ichan = 1, nchan
+      read(funit, *, iostat = io) ichan_read, itarg, l, lambda, E
+      if(ichan .ne. ichan_read) call die("Channel indices don't match up in " // filename)
+      if(io .ne. iostat_ok) call die("Problem reading data from file " // filename)
+      E = E * E2au
+      ! -- we have the info for this channel, now we just need to push it to an array that has this channel info.
+      !    First, make an array that can hold this info (probably in global ?) and add one channel at a time to it.
+      !    Have a way to search for duplicate channels ! Make sure to have a "true" channel index and at each geometry
+      !    That's different than 1, we make sure that channels dont swap order.
+      call die("sike")
+    enddo
+
+
+  end subroutine add_channels_from_file
 
 ! ================================================================================================================================ !
 end module UKRmol_scattering_data

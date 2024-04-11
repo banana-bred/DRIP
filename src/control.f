@@ -3,7 +3,7 @@ module control
   !! Global variables that will be used throughout program execution.
 
   use types,     only: ip, rp
-  use constants, only: initial_int
+  use constants, only: initial_int, one
 
   implicit none
 
@@ -21,6 +21,8 @@ module control
   public :: num_evaluation_energies
   public :: evaluation_energy_indices
   public :: evaluation_energies
+  public :: input_channel_energy_units
+  public :: input_channel_energy2au
 
   ! -- procedures
   public :: read_control
@@ -47,6 +49,9 @@ module control
     !! The number of evaluation energies for reading K-matrices. For each spin multiplicity in an energy independent calculation,
     !! DRIP will run this many times (once for each energy).
 
+  real(rp) :: input_channel_energy2au
+    !! The multiplicative conversion factor to convert input channel energies to atomic units
+
   integer(ip), allocatable :: evaluation_energy_indices(:)
     !! Array containing the evaluation energy indicies at which the K-matrices will be evaluated
 
@@ -56,6 +61,10 @@ module control
   character(:), allocatable :: evaluation_energy_units
     !! The units of the input evaluation energies, if supplied. Options:
     !!  H(ARTREE), R(YDBERG), EV, INVCM, K(ELVIN)
+
+  character(:), allocatable :: input_channel_energy_units
+    !! The energy units of the channels in the .channel files. These are the channel energies and NOT the target state energies.
+    !!Channels attached to the ground electronic target state should have 0 energy.
 
   character(:), allocatable :: molecule
     !! The name of the molecule
@@ -68,17 +77,18 @@ module control
   character(11) :: frmt_xy = "(2e30.20e3)"
     !! default write format for outputting two real numbers  30 characters wide, 20 characters after the period (.), and 3 digits in the exponent
 
-  namelist / control_namelist /                            &
+  namelist / control_namelist /                             &
     !! Controls the overall behavior and flow of the program.
-                                calculation_type,          &
-                                energy_dependent,          &
-                                molecule,                  &
-                                print_K,                   &
-                                print_S,                   &
-                                input_type,                &
-                                evaluation_energies,       &
-                                evaluation_energy_indices, &
-                                evaluation_energy_units,   &
+                                calculation_type,           &
+                                energy_dependent,           &
+                                molecule,                   &
+                                print_K,                    &
+                                print_S,                    &
+                                input_type,                 &
+                                evaluation_energies,        &
+                                evaluation_energy_indices,  &
+                                evaluation_energy_units,    &
+                                input_channel_energy_units, &
                                 verbosity
 
 ! =================================================================================================== !
@@ -103,9 +113,10 @@ contains
     character(big_char), parameter :: temp = ""
 
     ! -- initialze allocatable variables for reading
-    molecule                = temp
-    input_type              = temp
-    evaluation_energy_units = temp
+    molecule                   = temp
+    input_type                 = temp
+    evaluation_energy_units    = temp
+    input_channel_energy_units = temp
     allocate(evaluation_energies(1000))       ; evaluation_energies       = zero
     allocate(evaluation_energy_indices(1000)) ; evaluation_energy_indices = 0
 
@@ -117,14 +128,16 @@ contains
     rewind(stdin)
 
     ! -- trim space off characters
-    molecule                = trim(molecule)
-    input_type              = trim(input_type)
-    evaluation_energy_units = trim(evaluation_energy_units)
+    molecule                   = trim(molecule)
+    input_type                 = trim(input_type)
+    evaluation_energy_units    = trim(evaluation_energy_units)
+    input_channel_energy_units = trim(input_channel_energy_units)
 
     ! -- normalize the case
     call to_upper(calculation_type)
     call to_upper(input_type)
     call to_upper(evaluation_energy_units)
+    call to_upper(input_channel_energy_units)
 
     write(stdout, control_namelist)
     write(stdout, *)
@@ -168,19 +181,7 @@ contains
       ! -- determine the number of evalauation energies to loop over
       if(allocated(evaluation_energies)) then
 
-        ! -- need to know the input energy units
-        select case(evaluation_energy_units)
-          case("H", "HARTREE", "EV", "RYD", "RYDBERG", "INVCM", "K", "KELVIN") ; continue
-          case(trim(temp))
-            call die("The evaluation energy units must be specified. Choice of: H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
-          case default
-            call die("Unkonw energy '" // evaluation_energy_units // &
-              "' supplied. Please use one of H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
-        end select
-
-        num_evaluation_energies = size(evaluation_energies, 1)
-
-        ! -- convert supplied evaluation energies to atomic units in the code
+        ! -- need to know the input energy units (evaluation energy)
         select case(evaluation_energy_units)
           case("H", "HARTREE")
             continue
@@ -192,8 +193,14 @@ contains
             evaluation_energies = evaluation_energies / au2invcm
           case("K", "KELVIN")
             evaluation_energies = evaluation_energies / au2k
+          case(trim(temp))
+            call die("The evaluation energy units must be specified. Choice of: H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
+          case default
+            call die("Unkonw energy '" // evaluation_energy_units // &
+              "' supplied. Please use one of H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
         end select
 
+        num_evaluation_energies = size(evaluation_energies, 1)
         evaluation_energies = bubble_sort(evaluation_energies)
 
       endif
@@ -204,6 +211,25 @@ contains
       endif
 
     endif
+
+    ! -- need to know the input energy units (channel energy)
+    select case(input_channel_energy_units)
+      case("H", "HARTREE")
+        input_channel_energy2au = one
+      case("EV")
+        input_channel_energy2au = one / au2ev
+      case("RYD", "RYDBERG")
+        input_channel_energy2au = one / au2ryd
+      case("INVCM")
+        input_channel_energy2au = one / au2invcm
+      case("K", "KELVIN")
+        input_channel_energy2au = one / au2k
+      case(trim(temp))
+        call die("The input channel energy units must be specified. Choice of: H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
+      case default
+        call die("Unkonw energy '" // input_channel_energy_units // &
+          "' supplied. Please use one of H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
+    end select
 
   end subroutine read_control
 
