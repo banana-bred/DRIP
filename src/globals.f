@@ -72,6 +72,8 @@ module globals
       !! ndegend will be 1, 2, 2, 3, 3.
     integer(ip) :: irrep
       !! The irrep of the target state
+    integer(ip) :: M
+      !! The projection of the target electronic state's angular momentum on the molecular axis (ℏ = 1)
   end type targ_type
 
   type(targ_type), allocatable :: targ(:)

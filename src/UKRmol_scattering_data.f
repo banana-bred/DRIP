@@ -79,14 +79,17 @@ contains
     write(stdout, '("Found traces of quantum chemistry software : ", A)') qchem_name_detected
     call determine_point_group(qchem_filename, qchem_name_detected)
 
-    ! -- get the total channels now from denprop.out and the electronic state projections from the same place i guess. Read only the
+    ! -- get the target state info now from denprop.out
     filename = input_directory // ds // "geom1" // ds // "outputs" // ds // "target.denprop.out"
-    call read_channels(filename)
+    call read_targ(filename)
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! careful. Denprop is from UKRmol but david's code  changes this around but not denprop. Read the first denprop anywya and tehn
-    ! have the code figure out if the actual first geometry channels are in th eright order and what to do if not
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! -- loop over all irreps, build all channels based on first geom
+      ! "true" channel index (nlλ)
+      ! target state index
+      ! target state degen index
+      ! target state am proj (M)
+      ! incident e- l
+      ! incident e- λ
 
     ! -- loop over the necessary irreps given the point group and read K-matrices
 
@@ -184,10 +187,11 @@ contains
   end subroutine determine_point_group
 
   ! ------------------------------------------------------------------------------------------------------------------------------ !
-  subroutine read_channels(denprop_filename)
-    !! Read the first geometry's denprop.out to determine the number of electronic channels
+  subroutine read_targ(denprop_filename)
+    !! Read the first geometry's denprop.out to determine the number and properties of the target elecronic states
 
-    use globals,   only: reduced_mass, natoms, targ, targ_ndegen
+    use globals,   only: reduced_mass, natoms, targ, targ_ndegen, targ_proj
+    use symmetry,  only: convert_ukrmol_irrep, point_group
     use constants, only: au2amu
     use utilities, only: read_blank
 
@@ -240,6 +244,8 @@ contains
 
     if(natoms_read .ne. natoms) call die("The number of atoms in " // denprop_filename // " does not match the namelist input")
 
+    if(size(targ_proj, 1) .lt. ntarg) call die("Target state electronic angular momentum projections not supplied for all states")
+
     allocate(targ(ntarg))
 
     ! -- determine the reduced mass of the molecule while we're here
@@ -252,8 +258,11 @@ contains
 
       read(funit, *) ijunk(1), n, ijunk(1:2), irrep, targ_spin, ijunk(1:2), rjunk(1)
 
+      call convert_ukrmol_irrep(irrep, point_group)
+
       targ(i) % n     = i
-      targ(i) % irrep = irrep + 1
+      targ(i) % irrep = irrep
+      targ(i) % M     = targ_proj(i)
 
       if(allocated(targ_ndegen)) then
         targ(i) % ndegen = targ_ndegen(i)
@@ -263,17 +272,7 @@ contains
 
     enddo
 
-    do i = 1, ntarg
-      block
-        use symmetry, only: irrep_name, point_group
-        print*, n, irrep, targ_spin, irrep_name(targ(i) % irrep, point_group)
-        call die("Reconcile the UKRmol order and my irrep order. Make a converter in symmetry module")
-      end block
-    enddo
-
-    stop "test"
-
-  end subroutine read_channels
+  end subroutine read_targ
 
 ! ================================================================================================================================ !
 end module UKRmol_scattering_data

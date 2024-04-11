@@ -5,7 +5,7 @@ module symmetry
 
   use types,      only: ip
   use system,     only: die
-  use characters, only: upper
+  use characters, only: upper, char => int2char0
 
   implicit none
 
@@ -25,6 +25,7 @@ module symmetry
   public :: spin_name
   public :: determine_molpro_point_group
   public :: irrep_name
+  public :: convert_ukrmol_irrep
 
   character(3), parameter :: available_point_groups(1) = ["C2V"]
   character(33), parameter :: abelian_point_groups = "C1, Cs, C2, Ci, C2v, C2h, D2, D2h"
@@ -364,6 +365,90 @@ contains
     end select
 
   end function irrep_name
+
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  impure elemental subroutine convert_ukrmol_irrep(irrep, point_group)
+    !! Convert the irrep index from ukrmol to the local irrep indices. Ukrmol irrep indices start at 0 and are defined in the
+    !! ukrmollib.pm file supplied in the scripts.
+
+    implicit none
+
+    integer(ip),  intent(inout) :: irrep
+    character(*), intent(in) :: point_group
+
+    character(:), allocatable :: pg
+
+    pg = upper(trim(point_group))
+
+    select case(pg)
+
+    case("C1")
+      if(irrep .ne. 0) call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+      irrep = irrep + 1
+      return
+
+    case("CS", "C2", "CI")
+
+      select case(irrep)
+      case(0:1)
+        irrep = irrep + 1
+        return
+
+      case default
+        call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+
+      end select
+
+    case("C2V")
+      select case(irrep)
+        case(0) ; irrep = 1
+        case(1) ; irrep = 3
+        case(2) ; irrep = 4
+        case(3) ; irrep = 2
+        case default
+          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+      end select
+
+    case("C2H")
+      select case(irrep)
+        case(0) ; irrep = 1
+        case(1) ; irrep = 2
+        case(2) ; irrep = 4
+        case(3) ; irrep = 3
+        case default
+          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+      end select
+
+    case("D2")
+      select case(irrep)
+        case(0) ; irrep = 1
+        case(1) ; irrep = 4
+        case(2) ; irrep = 3
+        case(3) ; irrep = 2
+        case default
+          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+      end select
+
+    case("D2H")
+      select case(irrep)
+        case(0) ; irrep = 1
+        case(1) ; irrep = 8
+        case(2) ; irrep = 6
+        case(3) ; irrep = 3
+        case(4) ; irrep = 4
+        case(5) ; irrep = 5
+        case(6) ; irrep = 7
+        case(7) ; irrep = 2
+        case default
+          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+      end select
+
+    case default
+      call die("Unacceptable point group '" // point_group // "' given. Please choose one of " // abelian_point_groups // ".")
+
+    end select
+
+  end subroutine convert_ukrmol_irrep
 
 ! ================================================================================================================================ !
 end module symmetry
