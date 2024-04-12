@@ -13,8 +13,9 @@ link = ["blas", "lapack"]
 external-modules = "cernlib"
 
 [dependencies]
-stdlib = "*"
-fpm = { git = "https://github.com/fortran-lang/fpm" }
+stdlib          = "*"
+fpm             = { git = "https://github.com/fortran-lang/fpm" }
+bspline-fortran = { git="https://github.com/jacobwilliams/bspline-fortran.git" }
 
 [dev-dependencies]
 test-drive.git = "https://github.com/fortran-lang/test-drive"

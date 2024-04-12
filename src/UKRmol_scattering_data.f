@@ -100,6 +100,7 @@ contains
       ! target state am proj (M)
       ! incident e- l
       ! incident e- λ
+      ! q normalization (david, Seaton)
 
     ! -- loop over the necessary irreps given the point group and read K-matrices
 
