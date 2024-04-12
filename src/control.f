@@ -23,6 +23,7 @@ module control
   public :: evaluation_energies
   public :: input_channel_energy_units
   public :: input_channel_energy2au
+  public :: input_type
 
   ! -- procedures
   public :: read_control
@@ -157,7 +158,7 @@ contains
     end select
 
     select case(input_type)
-      case("UKRMOL+")
+      case("UKRMOL")
         if(energy_dependent) call die("Cannot use the energy-dependent approach with the input_type '" // input_type // "'")
         continue
       case("DAVID") ; continue

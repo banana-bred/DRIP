@@ -1,4 +1,4 @@
-! =================================================================================================== !
+! ================================================================================================================================ !
 module globals
   !! Global variables that will be used throughout program execution.
 
@@ -12,6 +12,7 @@ module globals
 
   ! -- types
   public :: targ_type
+  public :: electronic_channel_type
 
   ! -- variables
   public :: natoms
@@ -23,9 +24,11 @@ module globals
   public :: point_group
   public :: reduced_mass
   public :: targ
+  public :: electronic_channels
 
   ! -- procedures
   public :: read_globals
+  public :: swap_electronic_channel_values
 
   integer(ip) :: nspins
     !! The number of spin multiplicities of the neutral system
@@ -76,7 +79,32 @@ module globals
       !! The projection of the target electronic state's angular momentum on the molecular axis (ℏ = 1)
   end type targ_type
 
-  type(targ_type), allocatable :: targ(:)
+  type electronic_channel_type
+    !! Represents the state of the target molecule
+    integer(ip) :: idx
+      !! The channel index. Useful for when electronic states (and therefore electronic channels) swap order
+    integer(ip) :: n
+      !! The index of the target state (ground = 1)
+    integer(ip) :: ndegen
+      !! The index of the target state accounting for degeneracies (ground = 1). In the case where there are the target
+      !! states with n = 1, 2, 3, 4, 5 but the states 2/3 and 4/5 are mutually degenerate (e.g., a Π or Δ state), then
+      !! ndegend will be 1, 2, 2, 3, 3.
+    integer(ip) :: irrep
+      !! The irrep of the target state
+    integer(ip) :: M
+      !! The projection of the target electronic state's angular momentum on the molecular axis (ℏ = 1)
+    integer(ip) :: l
+      !! The orbital angular momentum quantum number of the incident electron
+    integer(ip) :: lambda
+      !! The projection of l on the molecular axis
+    integer(ip) :: q
+      !! Determines the normalization used for the f and g coulomb functions.
+      !!  q = 0 : alternative normalization [sqrt(B) from Seaton 2002, Comp Phys Comm 146 (2002) 225-249]
+      !!  q = 4 : standard normalization. This is always the case for UKRmol.
+  end type electronic_channel_type
+
+  type(targ_type),               allocatable :: targ(:)
+  type(electronic_channel_type), allocatable :: electronic_channels(:)
 
   namelist / globals_namelist /              &
     !! Global variables that relate to the target or total system
@@ -86,11 +114,11 @@ module globals
                                 targ_ndegen, &
                                 spins
 
-  ! =================================================================================================== !
+! ================================================================================================================================ !
   contains
-  ! =================================================================================================== !
+! ================================================================================================================================ !
 
-  ! ---------------------------------------------------------------------------------------------------!
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
   subroutine read_globals
     !! Reads the globals namelist
 
@@ -161,6 +189,46 @@ module globals
 
   end subroutine read_globals
 
-! =================================================================================================== !
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  pure subroutine swap_electronic_channel_values(channel1, channel2)
+    !! Swap the values of two electronic channels. Everything BUT their index should change. After using this routine, the indices
+    !! should be added/updated, anyway.
+    implicit none
+    type(electronic_channel_type), intent(inout) :: channel1
+    type(electronic_channel_type), intent(inout) :: channel2
+    type(electronic_channel_type) :: tmp
+    tmp = electronic_channel_type( &
+       idx    = 0,                 &
+       n      = channel1 % n,      &
+       ndegen = channel1 % ndegen, &
+       irrep  = channel1 % irrep,  &
+       M      = channel1 % M,      &
+       l      = channel1 % l,      &
+       lambda = channel1 % lambda, &
+       q      = channel1 % q       &
+    )
+    channel1 = electronic_channel_type( &
+       idx    = 0,                      &
+       n      = channel2 % n,           &
+       ndegen = channel2 % ndegen,      &
+       irrep  = channel2 % irrep,       &
+       M      = channel2 % M,           &
+       l      = channel2 % l,           &
+       lambda = channel2 % lambda,      &
+       q      = channel1 % q            &
+    )
+    channel2 = electronic_channel_type( &
+       idx    = 0,                      &
+       n      = tmp % n,                &
+       ndegen = tmp % ndegen,           &
+       irrep  = tmp % irrep,            &
+       M      = tmp % M,                &
+       l      = tmp % l,                &
+       lambda = tmp % lambda,           &
+       q      = channel1 % q            &
+    )
+  end subroutine swap_electronic_channel_values
+
+! ================================================================================================================================ !
 end module globals
-! =================================================================================================== !
+! ================================================================================================================================ !

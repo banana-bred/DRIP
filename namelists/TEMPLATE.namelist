@@ -43,9 +43,9 @@ $control_namelist !! Controls the overall behavior and flow of the program.
   energy_dependent = .false. !! Will the code use an energy-dependent S-matrix approach ?
                              !! Default: .false. (no)
 
-  input_type = "ukrmol+" !! The expected input type. Can take on one of two values :
-                         !!  "ukrmol+"
-                         !!  "david"
+  input_type = "ukrmol" !! The expected input type. Can take on one of two values :
+                        !!  "ukrmol"
+                        !!  "david"
 
   ! evaluation_energy_indices = 1, 2, 3
   evaluation_energies = 0.075, 1.2
@@ -78,7 +78,7 @@ $globals_namelist !! Global variables that relate to the target or total system
                               !! the first excited state is 2, 2 and the second excited state is 3, 3. The order
                               !! given here must apply to the first geometry of the run.
 
-  targ_proj = 0, 1, -1, 1, -1 !! Array containing the projections of the angular momentum of all electrons in the target (Λ) for  a given electronic state.
+  targ_proj = 0, 1, -1, -1, 1 !! Array containing the projections of the angular momentum of all electrons in the target (Λ) for  a given electronic state.
                               !! The length of this array should be equal to the number of electronic ! states in the Abelian subgroup of the UKRmol+ calculations,
                               !! including degeneracy (states with a ±|Λ| that isn't 0). For example, a molecule with the electronic structure
                               !! (increasing energy towards the right) [[ X1Σ-, a1Δ, b1Σ+, A3Π ]] could have `target_projections = 0, -2, 2, 0, 1, -1`.

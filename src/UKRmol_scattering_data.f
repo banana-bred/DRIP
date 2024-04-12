@@ -5,6 +5,7 @@ module UKRmol_scattering_data
 
   use types,           only: ip, rp
   use system,          only: die, stdout, iostat_ok
+  use globals,         only: electronic_channels, electronic_channel_type, targ, targ_ndegen, targ_proj
   use symmetry,        only: point_group
   use iso_fortran_env, only: iostat_end
 
@@ -85,6 +86,8 @@ contains
     filename = input_directory // ds // "geom1" // ds // "outputs" // ds // "target.denprop.out"
     call read_target(filename)
 
+    call die("Print information about the target states for the user !")
+
     ! -- loop over all irreps, build all channels based on first geom
     do irrep = 1, group_size(point_group)
 
@@ -94,14 +97,13 @@ contains
       call add_channels_from_file(filename)
 
     enddo
-      ! "true" channel index (nlλ)
-      ! target state index
-      ! target state degen index
-      ! target state am proj (M)
-      ! incident e- l
-      ! incident e- λ
-      ! q normalization (david, Seaton)
 
+    call sort_electronic_channels(electronic_channels)
+
+    call die("Print information about the max l detected for the user !")
+
+    call die("Now we can loop  over the geometries. First, we need to figure out a way to skip geometries manually if desired, or"&
+      // "skip duplicate geometries. We also need a way to read the geometry from the UKRMOL output directly (easy for diatoms)")
     ! -- loop over the necessary irreps given the point group and read K-matrices
 
       ! -- determine point group and available indices
@@ -201,7 +203,7 @@ contains
   subroutine read_target(denprop_filename)
     !! Read the first geometry's denprop.out to determine the number and properties of the target elecronic states
 
-    use globals,   only: reduced_mass, natoms, targ, targ_ndegen, targ_proj
+    use globals,   only: reduced_mass, natoms
     use symmetry,  only: convert_ukrmol_irrep
     use constants, only: au2amu
     use utilities, only: read_blank
@@ -289,8 +291,9 @@ contains
   subroutine add_channels_from_file(channelfile)
     !! Read the channels specified in the supplied channelfile
 
-    use control,   only: E2au => input_channel_energy2au
-    use utilities, only: read_blank
+    use control,    only: E2au => input_channel_energy2au, input_type
+    use utilities,  only: read_blank
+    use characters, only: upper
 
     implicit none
 
@@ -308,6 +311,7 @@ contains
     integer(ip) :: lambda
     integer(ip) :: ichan_read
     integer(ip) :: ijunk(1:4)
+    integer(ip) :: q
 
     real(rp) :: E
 
@@ -323,13 +327,21 @@ contains
 
     open(newunit = funit, file = filename)
 
+    ! -- the default value for the channel normalization if not specified as something else in the channel files
+    q = 4
+
     call read_blank(funit, 2)
     read(funit, *, iostat = io) ntarg, ijunk(1:2), nchan
     if(io .ne. iostat_ok) call die("Problem reading data from file " // filename)
     call read_blank(funit, ntarg + 1)
 
     do ichan = 1, nchan
-      read(funit, *, iostat = io) ichan_read, itarg, l, lambda, E
+      select case(upper(trim(input_type)))
+      case("UKRMOL") ; read(funit, *, iostat = io) ichan_read, itarg, l, lambda, E
+      case("DAVID")  ; read(funit, *, iostat = io) ichan_read, itarg, l, lambda, E, q
+      case default
+        call die("Could not determine the proper input type. Given input_type: " // trim(input_type))
+      end select
       if(ichan .ne. ichan_read) call die("Channel indices don't match up in " // filename)
       if(io .ne. iostat_ok) call die("Problem reading data from file " // filename)
       E = E * E2au
@@ -337,11 +349,108 @@ contains
       !    First, make an array that can hold this info (probably in global ?) and add one channel at a time to it.
       !    Have a way to search for duplicate channels ! Make sure to have a "true" channel index and at each geometry
       !    That's different than 1, we make sure that channels dont swap order.
-      call die("sike")
+      if(allocated(electronic_channels)) then
+        electronic_channels = [            &
+          electronic_channels,             &
+          electronic_channel_type(         &
+            idx    = 0,                    &
+            n      = itarg,                &
+            ndegen = targ(itarg) % ndegen, &
+            irrep  = targ(itarg) % irrep,  &
+            M      = targ(itarg) % M,      &
+            l      = l,                    &
+            lambda = lambda,               &
+            q      = q                     &
+          )                                &
+        ]
+      else
+        electronic_channels = [            &
+          electronic_channel_type(         &
+            idx    = 0,                    &
+            n      = itarg,                &
+            ndegen = targ(itarg) % ndegen, &
+            irrep  = targ(itarg) % irrep,  &
+            M      = targ(itarg) % M,      &
+            l      = l,                    &
+            lambda = lambda,               &
+            q      = q                     &
+          )                                &
+        ]
+      endif
     enddo
 
-
   end subroutine add_channels_from_file
+
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  pure subroutine sort_electronic_channels(channels)
+    !! Sorts the given array of electronic channels (of type electronic_channel_type)
+    !! by increasing n (target electronic state), then
+    !! by increasing l, then
+    !! by λ from -l to l
+
+    use globals, only: swapvals => swap_electronic_channel_values
+
+    implicit none
+
+    type(electronic_channel_type), intent(inout) :: channels(:)
+
+    integer(ip) :: ichan
+    integer(ip) :: jchan
+    integer(ip) :: nchan
+    integer(ip) :: ni
+    integer(ip) :: nj
+    integer(ip) :: li
+    integer(ip) :: lj
+    integer(ip) :: lambdai
+    integer(ip) :: lambdaj
+
+    nchan = size(channels, 1)
+
+    ! -- sort by target states
+    do ichan = 1, nchan
+      do jchan = ichan + 1, nchan
+        ni = channels(ichan) % n
+        nj = channels(jchan) % n
+        if(nj .ge. ni) cycle
+        call swapvals(channels(ichan), channels(jchan))
+      enddo
+    enddo
+
+    ! -- sort by l
+    do ichan = 1, nchan
+      do jchan = ichan + 1, nchan
+        ni = channels(ichan) % n
+        li = channels(ichan) % l
+        nj = channels(jchan) % n
+        lj = channels(jchan) % l
+        if(nj .ne. ni) cycle
+        if(lj .ge. li) cycle
+        call swapvals(channels(ichan), channels(jchan))
+      enddo
+    enddo
+
+    ! -- sort by λ
+    do ichan = 1, nchan
+      do jchan = ichan + 1, nchan
+        ni      = channels(ichan) % n
+        li      = channels(ichan) % l
+        lambdai = channels(ichan) % lambda
+        nj      = channels(jchan) % n
+        lj      = channels(jchan) % l
+        lambdaj = channels(jchan) % lambda
+        if(nj .ne. ni)           cycle
+        if(lj .ne. li)           cycle
+        if(lambdaj .ge. lambdai) cycle
+        call swapvals(channels(ichan), channels(jchan))
+      enddo
+    enddo
+
+    ! -- add channel indices now that they're sorted
+    do ichan = 1, nchan
+      channels(ichan) % idx = ichan
+    enddo
+
+  end subroutine sort_electronic_channels
 
 ! ================================================================================================================================ !
 end module UKRmol_scattering_data
