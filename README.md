@@ -21,7 +21,7 @@ Details on the DR and RVE methods in references [[1]](#1) and [[2]](#2), respect
 ## Dependencies
 - The [Fortran Standard Library (stdlib)](https://github.com/fortran-lang/stdlib)
 - The [Fortran Package Manager (fpm)](https://github.com/fortran-lang/fpm)
-- The [Bspline-fortran](https://github.com/jacobwilliams/bspline-fortran.git)
+- The [bspline-fortran](https://github.com/jacobwilliams/bspline-fortran.git)
 - A working installation of `BLAS` and `LAPACK`
 - A working installation of the [CERN Program Library (cernlib)](https://cernlib.web.cern.ch/index.html)
 
