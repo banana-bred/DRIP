@@ -4,9 +4,12 @@ module UKRmol_scattering_data
   !! state energies, channel data (quantum numbers, indices, and energies), etc.
 
   use types,           only: ip, rp
+  use arrays,          only: append
   use system,          only: die, stdout, iostat_ok
-  use globals,         only: electronic_channels, electronic_channel_type, targ, targ_ndegen, targ_proj
+  use globals,         only: electronic_channels, electronic_channel_type, targ, targ_ndegen, targ_proj, geometries, ngeom, K_R
   use symmetry,        only: point_group
+  use utilities,       only: read_blank
+  use directories,     only: ds => directory_separator, input_directory
   use iso_fortran_env, only: iostat_end
 
   implicit none
@@ -23,10 +26,11 @@ contains
   subroutine get_K_matrix_and_electronic_channels(spin, inrg)
     !! This subroutine reads the desired K-matrix and electronic channels from the UKRmol+ output nearest to the specified energy
 
-    use control,     only: evaluation_energy_indices, evaluation_energies
+    use globals,     only: ntarg
+    use control,     only: evaluation_energy_indices, evaluation_energies, geom_start, geom_end, skip_geom
     use symmetry,    only: group_size, spin_name, irrep_name
+    use constants,   only: initial_int
     use characters,  only: char => int2char0
-    use directories, only: ds => directory_separator, input_directory
 
     implicit none
 
@@ -50,7 +54,10 @@ contains
     integer(ip) :: nqchem_detected
       !! The number of quantum chemistry output files detected
     integer(ip) :: i
+    integer(ip) :: igeom
+    integer(ip) :: itarg
     integer(ip) :: irrep
+    integer(ip), allocatable :: indices(:)
 
     character(:), allocatable :: qchem_filename
       !! The name of the quantum chemistry output file
@@ -86,8 +93,6 @@ contains
     filename = input_directory // ds // "geom1" // ds // "outputs" // ds // "target.denprop.out"
     call read_target(filename)
 
-    call die("Print information about the target states for the user !")
-
     ! -- loop over all irreps, build all channels based on first geom
     do irrep = 1, group_size(point_group)
 
@@ -100,10 +105,40 @@ contains
 
     call sort_electronic_channels(electronic_channels)
 
-    call die("Print information about the max l detected for the user !")
+    ! -- print some info to stdout
+    ntarg = size(targ, 1)
+    write(stdout, '("The detected target state indices are : ", ' // char(ntarg) // '(I0, X))') &
+      [(targ(itarg) % n, itarg = 1, ntarg)]
+    write(stdout, '("With degeneracies :                     ", ' // char(ntarg) // '(I0, X))') &
+      [(targ(itarg) % ndegen, itarg = 1, ntarg)]
+    write(stdout, '("The maximum detected value of l in this calculation is ", I0)') maxval(electronic_channels % l)
 
-    call die("Now we can loop  over the geometries. First, we need to figure out a way to skip geometries manually if desired, or"&
-      // "skip duplicate geometries. We also need a way to read the geometry from the UKRMOL output directly (easy for diatoms)")
+    ! -- read the available geometries
+    call read_geometries(geometries)
+    ngeom = size(geometries, 1)
+    if(geom_end .eq. initial_int) geom_end = ngeom
+
+    ! -- filter the geometries based on initial, final, and skipped geometries
+    do igeom = 1, ngeom
+      if(igeom .lt. geom_start) cycle
+      if(igeom .gt. geom_end) exit
+      if(any(igeom .eq. skip_geom)) then
+        write(stdout, '("Skipping geometry ", I0, " per user request")') igeom
+        cycle
+      endif
+      call append(indices, igeom)
+    enddo
+
+    ! -- for each included geometry, read the K-matrices
+    do igeom = 1, ngeom
+
+      call die("We can read the k matries now. We have the index of the enregy to read, and a K-matrix that is i j R E. ")
+
+      ! -- distinction between UKRmol read and DAVID read. Include both cases
+      call read_kmats
+
+    enddo
+
     ! -- loop over the necessary irreps given the point group and read K-matrices
 
       ! -- determine point group and available indices
@@ -206,7 +241,6 @@ contains
     use globals,   only: reduced_mass, natoms
     use symmetry,  only: convert_ukrmol_irrep
     use constants, only: au2amu
-    use utilities, only: read_blank
 
     implicit none
 
@@ -291,8 +325,7 @@ contains
   subroutine add_channels_from_file(channelfile)
     !! Read the channels specified in the supplied channelfile
 
-    use control,    only: E2au => input_channel_energy2au, input_type
-    use utilities,  only: read_blank
+    use control,    only: E2au => ukrmol_channel_energy2au, input_type
     use characters, only: upper
 
     implicit none
@@ -333,6 +366,7 @@ contains
     call read_blank(funit, 2)
     read(funit, *, iostat = io) ntarg, ijunk(1:2), nchan
     if(io .ne. iostat_ok) call die("Problem reading data from file " // filename)
+
     call read_blank(funit, ntarg + 1)
 
     do ichan = 1, nchan
@@ -451,6 +485,44 @@ contains
     enddo
 
   end subroutine sort_electronic_channels
+
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  subroutine read_geometries(geometries)
+    !! Read the geometries fom the file "geometries" in the UKRmol+ folder
+    use control, only: R2au => ukrmol_internuclear_distance2au
+    real(rp), allocatable, intent(inout) :: geometries(:)
+    character(:), allocatable :: filename
+    integer(ip) :: igeom
+    real(rp) :: R
+    integer(ip) :: funit
+    integer(ip) :: io
+    filename = input_directory // ds // "geometries"
+    open(newunit = funit, file = filename)
+    call read_blank(funit)
+    do
+
+      read(funit, *, iostat = io) igeom, R
+
+      select case(io)
+      case(iostat_ok)
+        R = R * R2au
+        call append(geometries, R)
+      case(iostat_end)
+        exit
+      case default
+        call die("Unknown problem reading " // filename)
+      end select
+
+    enddo
+  end subroutine read_geometries
+
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  subroutine read_kmats
+
+    implicit none
+
+
+  end subroutine read_kmats
 
 ! ================================================================================================================================ !
 end module UKRmol_scattering_data

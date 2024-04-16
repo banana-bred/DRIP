@@ -53,9 +53,17 @@ $control_namelist !! Controls the overall behavior and flow of the program.
   ! evaluation_energies = 0.075, 0.077, 0.0123
   ! evaluation_energy_indices = 1, 2, 3
 
-  input_channel_energy_units = "ryd" !! The energy units of the channels in the .channel files. These are the channel energies and
-                                     !! NOT the target state energies. Channels attached to the ground electronic target state
-                                     !! should have 0 energy.
+  ukrmol_channel_energy_units = "ryd" !! The energy units of the channels in the .channel files. These are the channel energies and
+                                      !! NOT the target state energies. Channels attached to the ground electronic target state
+                                      !! should have 0 energy.
+
+  ukrmol_internuclear_distance_units = "Hartree" !! The units of the internuclear distance determined from the output of UKRmol+.
+                                                 !! Default AU (atomic units)
+
+  skip_geom = 3
+  ! geom_start = 1  !! The first geometry to consider from the input UKRmol+ directory. (Default 1)
+  ! geom_end   = 71 !! The last  geometry to consider from the input UKRmol+ directory. (Default last available)
+  ! skip_geom = 1, 2, 5, 18 !! An optional array of geometries to skip
 
 /
 

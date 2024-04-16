@@ -21,9 +21,13 @@ module control
   public :: num_evaluation_energies
   public :: evaluation_energy_indices
   public :: evaluation_energies
-  public :: input_channel_energy_units
-  public :: input_channel_energy2au
+  public :: ukrmol_channel_energy_units
+  public :: ukrmol_channel_energy2au
+  public :: ukrmol_internuclear_distance2au
   public :: input_type
+  public :: geom_start
+  public :: geom_end
+  public :: skip_geom
 
   ! -- procedures
   public :: read_control
@@ -50,8 +54,18 @@ module control
     !! The number of evaluation energies for reading K-matrices. For each spin multiplicity in an energy independent calculation,
     !! DRIP will run this many times (once for each energy).
 
-  real(rp) :: input_channel_energy2au
-    !! The multiplicative conversion factor to convert input channel energies to atomic units
+  integer(ip) :: geom_start = 1
+    !! The first geometry to consider from the input UKRmol+ directory (default 1)
+  integer(ip) :: geom_end = initial_int
+    !! The last geometry to consider from the input UKRmol+ directory (default last available)
+  integer(ip), allocatable :: skip_geom(:)
+    !! Optional array of input geometries to skip
+
+  real(rp) :: ukrmol_channel_energy2au
+    !! The multiplicative conversion factor to convert UKRmol+ channel energies to atomic units
+
+  real(rp) :: ukrmol_internuclear_distance2au
+    !! The multiplicative conversion factor to convert UKRmol+ internuclear distance units to atomic units
 
   integer(ip), allocatable :: evaluation_energy_indices(:)
     !! Array containing the evaluation energy indicies at which the K-matrices will be evaluated
@@ -63,7 +77,10 @@ module control
     !! The units of the input evaluation energies, if supplied. Options:
     !!  H(ARTREE), R(YDBERG), EV, INVCM, K(ELVIN)
 
-  character(:), allocatable :: input_channel_energy_units
+  character(:), allocatable :: ukrmol_internuclear_distance_units
+    !! The units of the internuclear distance determined from the output of UKRmol+. Default H (Hartree atomic units)
+
+  character(:), allocatable :: ukrmol_channel_energy_units
     !! The energy units of the channels in the .channel files. These are the channel energies and NOT the target state energies.
     !!Channels attached to the ground electronic target state should have 0 energy.
 
@@ -78,18 +95,22 @@ module control
   character(11) :: frmt_xy = "(2e30.20e3)"
     !! default write format for outputting two real numbers  30 characters wide, 20 characters after the period (.), and 3 digits in the exponent
 
-  namelist / control_namelist /                             &
+  namelist / control_namelist /                              &
     !! Controls the overall behavior and flow of the program.
-                                calculation_type,           &
-                                energy_dependent,           &
-                                molecule,                   &
-                                print_K,                    &
-                                print_S,                    &
-                                input_type,                 &
-                                evaluation_energies,        &
-                                evaluation_energy_indices,  &
-                                evaluation_energy_units,    &
-                                input_channel_energy_units, &
+                                calculation_type,            &
+                                energy_dependent,            &
+                                molecule,                    &
+                                print_K,                     &
+                                print_S,                     &
+                                input_type,                  &
+                                evaluation_energies,         &
+                                evaluation_energy_indices,   &
+                                evaluation_energy_units,     &
+                                ukrmol_channel_energy_units,  &
+                                ukrmol_internuclear_distance_units, &
+                                geom_start,                  &
+                                geom_end,                    &
+                                skip_geom,                   &
                                 verbosity
 
 ! =================================================================================================== !
@@ -114,10 +135,12 @@ contains
     character(big_char), parameter :: temp = ""
 
     ! -- initialze allocatable variables for reading
-    molecule                   = temp
-    input_type                 = temp
-    evaluation_energy_units    = temp
-    input_channel_energy_units = temp
+    molecule                    = temp
+    input_type                  = temp
+    evaluation_energy_units     = temp
+    ukrmol_internuclear_distance_units = temp
+    ukrmol_channel_energy_units  = temp
+    allocate(skip_geom(1000))                 ; skip_geom                 = 0
     allocate(evaluation_energies(1000))       ; evaluation_energies       = zero
     allocate(evaluation_energy_indices(1000)) ; evaluation_energy_indices = 0
 
@@ -129,22 +152,25 @@ contains
     rewind(stdin)
 
     ! -- trim space off characters
-    molecule                   = trim(molecule)
-    input_type                 = trim(input_type)
-    evaluation_energy_units    = trim(evaluation_energy_units)
-    input_channel_energy_units = trim(input_channel_energy_units)
+    molecule                           = trim(molecule)
+    input_type                         = trim(input_type)
+    evaluation_energy_units            = trim(evaluation_energy_units)
+    ukrmol_channel_energy_units        = trim(ukrmol_channel_energy_units)
+    ukrmol_internuclear_distance_units = trim(ukrmol_internuclear_distance_units)
 
     ! -- normalize the case
     call to_upper(calculation_type)
     call to_upper(input_type)
     call to_upper(evaluation_energy_units)
-    call to_upper(input_channel_energy_units)
+    call to_upper(ukrmol_channel_energy_units)
+    call to_upper(ukrmol_internuclear_distance_units)
 
     write(stdout, control_namelist)
     write(stdout, *)
 
     ! -- trim input arrays of default values (deallocate if no non-default values are supplied)
-    call remove_value(evaluation_energies,       zero)
+    call remove_value(skip_geom,                 0)
+    call remove_value(evaluation_energies,    zero)
     call remove_value(evaluation_energy_indices, 0)
 
     !vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
@@ -197,7 +223,7 @@ contains
           case(trim(temp))
             call die("The evaluation energy units must be specified. Choice of: H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
           case default
-            call die("Unkonw energy '" // evaluation_energy_units // &
+            call die("Unknown evaluation energy units '" // evaluation_energy_units // &
               "' supplied. Please use one of H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
         end select
 
@@ -214,21 +240,39 @@ contains
     endif
 
     ! -- need to know the input energy units (channel energy)
-    select case(input_channel_energy_units)
+    select case(ukrmol_channel_energy_units)
       case("H", "HARTREE")
-        input_channel_energy2au = one
+        ukrmol_channel_energy2au = one
       case("EV")
-        input_channel_energy2au = one / au2ev
+        ukrmol_channel_energy2au = one / au2ev
       case("RYD", "RYDBERG")
-        input_channel_energy2au = one / au2ryd
+        ukrmol_channel_energy2au = one / au2ryd
       case("INVCM")
-        input_channel_energy2au = one / au2invcm
+        ukrmol_channel_energy2au = one / au2invcm
       case("K", "KELVIN")
-        input_channel_energy2au = one / au2k
+        ukrmol_channel_energy2au = one / au2k
       case(trim(temp))
         call die("The input channel energy units must be specified. Choice of: H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
       case default
-        call die("Unkonw energy '" // input_channel_energy_units // &
+        call die("Unknown energy units '" // ukrmol_channel_energy_units // &
+          "' supplied. Please use one of H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
+    end select
+
+    select case(ukrmol_internuclear_distance_units)
+      case("H", "HARTREE")
+        ukrmol_internuclear_distance2au = one
+      case("EV")
+        ukrmol_internuclear_distance2au = one / au2ev
+      case("RYD", "RYDBERG")
+        ukrmol_internuclear_distance2au = one / au2ryd
+      case("INVCM")
+        ukrmol_internuclear_distance2au = one / au2invcm
+      case("K", "KELVIN")
+        ukrmol_internuclear_distance2au = one / au2k
+      case(trim(temp))
+        call die("The input internuclear distance units must be specified. Choice of: H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
+      case default
+        call die("Unkown internuclear distance unit '" // ukrmol_internuclear_distance_units // &
           "' supplied. Please use one of H(ARTREE), EV, RYD(BERG), INVCM, K(ELVIN)")
     end select
 

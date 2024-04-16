@@ -25,6 +25,10 @@ module globals
   public :: reduced_mass
   public :: targ
   public :: electronic_channels
+  public :: ntarg
+  public :: geometries
+  public :: ngeom
+  public :: K_R
 
   ! -- procedures
   public :: read_globals
@@ -34,6 +38,10 @@ module globals
     !! The number of spin multiplicities of the neutral system
   integer(ip) :: natoms
     !! number of atoms in the target molecule
+  integer(ip) :: ntarg
+    !! The number of target electronic states in the calculation
+  integer(ip) :: ngeom
+    !! The number of geometries that were read from the UKRmol directory
 
   integer(ip), allocatable :: spins(:)
     !! Array of spin multiplicities (2S+1) for the neutral system. The code is mosly spin-agnostic.
@@ -61,6 +69,13 @@ module globals
 
   real(rp) :: reduced_mass
     !! The reduced mass of the molecule (used in solving the vibrational Hamiltonian)
+
+  real(rp), allocatable :: geometries(:)
+    !! Array of internuclear distances at which K-matrices were computed
+
+  real(rp), allocatable :: K_R(:,:,:,:)
+    !! The K-matrices as a function of internuclear distance. Indexed as (i, j, R, E)
+    !! i, and j are the row and column, R is the internuclear distance, and E is the evaluation energy
 
   character(:), allocatable :: point_group
   !! The point group in which the UKRmol+ calculations were run
