@@ -144,10 +144,6 @@ subroutine make_directories
     mkdir_command = "mkdir -p "
   endif
 
-  ! -- check that the input directory exists
-  inquire(file = input_directory, exist = exists)
-  if(.not. exists) call die("Input directory '" // input_directory // "' does not exist !")
-
   ! -- make sure directories are ready to have subdirectories concatenated to them
   call add_trailing(input_directory, directory_separator)
   call add_trailing(output_directory, directory_separator)
@@ -282,14 +278,7 @@ subroutine mkdir(directory)
 
   call system(mkdir_command // directory, status = stat)
 
-  inquire(file = directory, exist = exists)
   if(stat .ne. shell_ok) call die("Trying to make directory '" // directory // "' returned status code " // int2char0(stat) )
-
-  inquire(file = directory, exist = exists)
-
-  if(.not. exists) call die("Directory '" // directory // "' could not be made, even though '" // &
-    mkdir_command // "' returned " // int2char0(stat))
-
 end subroutine mkdir
 
 ! ===================================================================================================!

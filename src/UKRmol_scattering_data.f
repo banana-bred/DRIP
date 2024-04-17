@@ -129,6 +129,8 @@ contains
       call append(indices, igeom)
     enddo
 
+    call die("Tell user what the geometries are")
+
     ! -- for each included geometry, read the K-matrices
     do igeom = 1, ngeom
 
