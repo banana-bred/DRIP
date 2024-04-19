@@ -3,15 +3,6 @@ module UKRmol_scattering_data
   !! Contains procedures used to read electron scattering data from the UKRmol+ output, such as K-matrices, target electronic
   !! state energies, channel data (quantum numbers, indices, and energies), etc.
 
-  use types,           only: ip, rp
-  use arrays,          only: append
-  use system,          only: die, stdout, iostat_ok
-  use globals,         only: electronic_channels, electronic_channel_type, targ, targ_ndegen, targ_proj, geometries, ngeom, K_R
-  use symmetry,        only: point_group
-  use utilities,       only: read_blank
-  use directories,     only: ds => directory_separator, input_directory
-  use iso_fortran_env, only: iostat_end
-
   implicit none
 
   private
@@ -26,17 +17,22 @@ contains
   subroutine get_K_matrix_and_electronic_channels(spin, inrg)
     !! This subroutine reads the desired K-matrix and electronic channels from the UKRmol+ output nearest to the specified energy
 
-    use globals,     only: ntarg
-    use control,     only: evaluation_energy_indices, evaluation_energies, geom_start, geom_end, skip_geom
-    use symmetry,    only: group_size, spin_name, irrep_name
-    use constants,   only: initial_int
-    use characters,  only: char => int2char0
+    use types,           only: ip, rp
+    use system,          only: stdout, die
+    use arrays,          only: append
+    use globals,         only: ntarg, targ, electronic_channels, geometries, ngeom
+    use symmetry,        only: point_group, irrep_name, spin_name, group_size
+    use control,         only: evaluation_energy_indices, evaluation_energies, geom_start, geom_end, skip_geom, input_type
+    use constants,       only: initial_int
+    use characters,      only: char => int2char0
+    use directories,     only: ds => directory_separator, input_directory
+    use iso_fortran_env, only: iostat_end
 
     implicit none
 
-    integer, intent(in) :: spin
+    integer(ip), intent(in) :: spin
       !! The spin multiplicity of the target + electron
-    integer, intent(in) :: inrg
+    integer(ip), intent(in) :: inrg
       !! The index of the energy to read. This is the index of EVALUATION_ENERGY_INDICES or EVALUATION_ENERGIES.
       !! For example, if EVALUATION_ENERGY_INDICES = [1, 3, 10], then EVALUATION_ENERGY_INDICES(inrg=3) is 10.
       !! This is to say the inrg is not the index inf EVALUATION_ENERGY_INDICES, but is used to index this array
@@ -72,7 +68,7 @@ contains
     ! -- read the output of the quantum chemistry software used to calculate the target orbitals
     do i = 1, size(quantum_chemistry_names, 1)
       qchem_name_detected = trim(quantum_chemistry_names(i))
-      qchem_filename = input_directory // ds // "geom1" // ds // "outputs" // ds // "target." // qchem_name_detected // ".out"
+      qchem_filename = input_directory // "geom1" // ds // "outputs" // ds // "target." // qchem_name_detected // ".out"
       inquire(file = qchem_filename, exist = exists)
       qchem_exists(i) = exists
       if(.not. exists) cycle
@@ -118,7 +114,7 @@ contains
     ngeom = size(geometries, 1)
     if(geom_end .eq. initial_int) geom_end = ngeom
 
-    ! -- filter the geometries based on initial, final, and skipped geometries
+    ! -- filter the geometries based on initial, final, and skipped geometries.
     do igeom = 1, ngeom
       if(igeom .lt. geom_start) cycle
       if(igeom .gt. geom_end) exit
@@ -126,19 +122,23 @@ contains
         write(stdout, '("Skipping geometry ", I0, " per user request")') igeom
         cycle
       endif
+      if(igeom .ne. ngeom) then
+        ! -- skip duplicate geometries
+        if(geometries(igeom) .eq. geometries(igeom + 1)) then
+          write(stdout, '("Skipping geometry ", I0, " because is the same as geometry ", I0)') igeom, igeom + 1
+          cycle
+        endif
+      endif
       call append(indices, igeom)
     enddo
 
-    call die("Tell user what the geometries are")
-
     ! -- for each included geometry, read the K-matrices
     do igeom = 1, ngeom
-
-      call die("We can read the k matries now. We have the index of the enregy to read, and a K-matrix that is i j R E. ")
-
-      ! -- distinction between UKRmol read and DAVID read. Include both cases
-      call read_kmats
-
+      select case(input_type)
+        case("UKRMOL") ; call read_ukrmol_kmats(spin, igeom)
+        case("DAVID")  ; call die("DAvid")
+        case default   ; call die("Improper input type " // input_type)
+      end select
     enddo
 
     ! -- loop over the necessary irreps given the point group and read K-matrices
@@ -180,8 +180,12 @@ contains
   subroutine determine_point_group(qchem_filename, qchem_name)
     !! Determine the point group of the calculations by reading the output of the quantum chemistry software (which contains
     !! the repeated input of the quantum chemistry software).
-    use symmetry,   only: determine_molpro_point_group
-    use characters, only: upper
+
+    use types,           only: ip
+    use system,          only: iostat_ok, die
+    use symmetry,        only: determine_molpro_point_group, point_group
+    use characters,      only: upper
+    use iso_fortran_env, only: iostat_end
 
     implicit none
 
@@ -190,9 +194,9 @@ contains
 
     logical :: exists
 
-    integer :: funit
-    integer :: io
-    integer :: i
+    integer(ip) :: funit
+    integer(ip) :: io
+    integer(ip) :: i
 
     character(20) :: line
 
@@ -240,9 +244,13 @@ contains
   subroutine read_target(denprop_filename)
     !! Read the first geometry's denprop.out to determine the number and properties of the target elecronic states
 
-    use globals,   only: reduced_mass, natoms
-    use symmetry,  only: convert_ukrmol_irrep
-    use constants, only: au2amu
+    use types,           only: ip, rp
+    use system,          only: iostat_ok, die
+    use globals,         only: reduced_mass, natoms, targ, targ_proj, targ_ndegen
+    use symmetry,        only: convert_ukrmol_irrep, point_group
+    use utilities,       only: read_blank
+    use constants,       only: au2amu
+    use iso_fortran_env, only: iostat_end
 
     implicit none
 
@@ -327,7 +335,11 @@ contains
   subroutine add_channels_from_file(channelfile)
     !! Read the channels specified in the supplied channelfile
 
+    use types,      only: ip, rp
+    use system,     only: iostat_ok, die
+    use globals,    only: electronic_channels, electronic_channel_type, targ
     use control,    only: E2au => ukrmol_channel_energy2au, input_type
+    use utilities,  only: read_blank
     use characters, only: upper
 
     implicit none
@@ -424,7 +436,8 @@ contains
     !! by increasing l, then
     !! by λ from -l to l
 
-    use globals, only: swapvals => swap_electronic_channel_values
+    use types,   only: ip, rp
+    use globals, only: swapvals => swap_electronic_channel_values, electronic_channel_type
 
     implicit none
 
@@ -491,8 +504,17 @@ contains
   ! ------------------------------------------------------------------------------------------------------------------------------ !
   subroutine read_geometries(geometries)
     !! Read the geometries fom the file "geometries" in the UKRmol+ folder
-    use control, only: R2au => ukrmol_internuclear_distance2au
+
+    use types,           only: ip, rp
+    use arrays,          only: append
+    use system,          only: iostat_ok, die
+    use control,         only: R2au => ukrmol_internuclear_distance2au
+    use utilities,       only: read_blank
+    use directories,     only: ds => directory_separator, input_directory
+    use iso_fortran_env, only: iostat_end
+
     real(rp), allocatable, intent(inout) :: geometries(:)
+      !! Array of the input geometries (internuclear distances)
     character(:), allocatable :: filename
     integer(ip) :: igeom
     real(rp) :: R
@@ -519,12 +541,71 @@ contains
   end subroutine read_geometries
 
   ! ------------------------------------------------------------------------------------------------------------------------------ !
-  subroutine read_kmats
+  subroutine read_ukrmol_kmats(spin, igeom)
+
+    use types,       only: ip
+    use system,      only: die
+    use symmetry,    only: irrep_name, spin_name, point_group, group_size
+    use utilities,   only: read_blank
+    use characters,  only: char => int2char0
+    use directories, only: ds => directory_separator, input_directory
 
     implicit none
 
+    integer(ip), intent(in) :: spin
+      !! The spin multiplicity 2S + 1 of the target + electron system
+    integer(ip), intent(in) :: igeom
+      !! The current geometry index
 
-  end subroutine read_kmats
+    logical :: exists
+    integer(ip) :: funit
+    integer(ip) :: io
+    integer(ip) :: irrep
+    integer(ip) :: ijunk(2)
+    integer(ip) :: ntarg_read
+    integer(ip) :: nchan_read
+    character(:), allocatable :: filename
+
+    ! -- loop over irreps,
+    do irrep = 1, group_size(point_group)
+
+      ! -- read this geometry's channels to determine if channels need to be swapped
+      filename = input_directory // "collected_scattering_data" // ds // "channels" // ds // "channels.geom" // char(igeom) &
+        // "." // spin_name(spin) // "." // irrep_name(irrep, point_group)
+      inquire(           &
+        file = filename, &
+        exist = exists   &
+      )
+
+      if(.not. exists) call die("The file " // filename // " does not exist")
+
+      open(newunit = funit, file = filename)
+
+      call read_blank(funit, 2)
+
+      read(funit, *, iostat = io) ntarg_read, ijunk(1:2), nchan_read
+
+      call read_blank(funit)
+
+      call die("We're at the point were we're reading the channels for each irrep and trybing to see if the degenerate states are" &
+      // " different or if states cross. Mayb")
+
+      ! -- determine if the electronic states are in the correct order
+      ! Will need to compare their irrep and their spin multiplicity
+      ! Between geometries, a pair of degenerate states could swap, but actual electronic states could change order.
+      ! Use the fact that target states of the same irrep  cannot cross,
+      ! e.g., 1A1 (1B1 1B2) 2A1 can become
+      ! (1B1 1B2) 1A1 2A2
+      ! 1A1 2A1 (1B1 1B2)
+      ! but not
+      ! (1B1 1B2) 2A1 1A2
+      ! 2A1 (1B1 1B2) 1A1 etc.
+      ! Need to go one state at a time and itentiy the degenerate states first ?
+      ! Given that we're reading in an irrep, the channels
+
+    enddo
+
+  end subroutine read_ukrmol_kmats
 
 ! ================================================================================================================================ !
 end module UKRmol_scattering_data

@@ -2,8 +2,6 @@
 module files
   !! Contains procedures for special ways to read and write to files
 
-  use characters, only: numeric
-
   implicit none
 
   private
@@ -46,6 +44,9 @@ subroutine read_commented_file_real(fname, a, b, comment_char_in)
   !! Refer to the inerface definition for an explanation
   !! The comment character defaults to "!", but can be set to anything not in the character 'numeric' from the 'characters' module and
   !! also not whitespace. This version reads real numbers.
+
+  use types,      only: ip, rp, big_char
+  use characters, only: numeric
 
   implicit none
 
