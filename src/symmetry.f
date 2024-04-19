@@ -3,8 +3,7 @@ module symmetry
   !! Contains procedures and variables related to various symmetries, including point groups,
   !! irreps, and spin multiplicities.
 
-  ! use system,     only: die
-  ! use characters, only: upper, char => int2char0
+  use types, only: ip
 
   implicit none
 
@@ -29,6 +28,34 @@ module symmetry
   character(3), parameter :: available_point_groups(1) = ["C2V"]
   character(33), parameter :: abelian_point_groups = "C1, Cs, C2, Ci, C2v, C2h, D2, D2h"
   character(:), allocatable :: point_group
+
+  ! ---------------------------------------- !
+  ! The integer labels of the various irreps !
+  ! ---------------------------------------- !
+  ! -- Cs
+  integer(ip), parameter :: Ap  = 1
+  integer(ip), parameter :: App = 2
+  ! -- Ci, C2h
+  integer(ip), parameter :: Ag = 1
+  integer(ip), parameter :: Au = 2
+  integer(ip), parameter :: Bg = 3
+  integer(ip), parameter :: Bu = 4
+  ! -- C1, C2, C2v, D2, D2h
+  integer(ip), parameter :: A  = 1
+  integer(ip), parameter :: A1 = 1
+  integer(ip), parameter :: A2 = 4
+  integer(ip), parameter :: B  = 2
+  integer(ip), parameter :: B1 = 2
+  integer(ip), parameter :: B2 = 3
+  integer(ip), parameter :: B3 = 4
+  ! -- D2h
+  integer(ip), parameter :: B1g = 3
+  integer(ip), parameter :: B1u = 4
+  integer(ip), parameter :: B2g = 5
+  integer(ip), parameter :: B2u = 6
+  integer(ip), parameter :: B3g = 7
+  integer(ip), parameter :: B3u = 8
+
 
 ! ================================================================================================================================ !
 contains
@@ -59,7 +86,7 @@ contains
   ! ------------------------------------------------------------------------------------------------------------------------------ !
   function group_irreps(point_group) result(irreps)
     !! Return an array containing the names of the irreps in the supplied point_group.
-    !! Only Abelian point groups are considered. Irreps in the code will be referred to by their indicies, defined here, i.e.,
+    !! Only Abelian point groups are considered. Irreps in the code will be referred to by their indicies, i.e.,
     !! the name of irrep 3 in point group C2v is "B1" because that is the value assigned to irreps(3).
 
     use system,     only: die
@@ -70,16 +97,65 @@ contains
     character(*), intent(in) :: point_group
     character(:), allocatable :: irreps(:)
 
-    select case(upper(trim(point_group)))
+    integer :: nirreps
+    character(:), allocatable :: pg
 
-      case("C1")  ; irreps = ["A"]
-      case("CS")  ; irreps = ["AP ", "APP"]
+    pg = upper(trim(point_group))
+    nirreps = group_size(pg)
+
+
+    select case(pg)
+
+      case("C1")
+        allocate(character(1) :: irreps(nirreps))
+        irreps(A) = "A"
+
+      case("CS")
+        allocate(character(3) :: irreps(nirreps))
+        irreps(Ap)  = "AP"
+        irreps(App) = "APP"
+
       case("C2")  ; irreps = ["A", "B"]
+        allocate(character(1) :: irreps(nirreps))
+        irreps(A) = "A"
+        irreps(B) = "B"
+
       case("CI")  ; irreps = ["AG", "AU"]
+        allocate(character(2) :: irreps(nirreps))
+        irreps(Ag) = "Ag"
+        irreps(Au) = "Au"
+
       case("C2V") ; irreps = ["A1", "A2", "B1", "B2"]
-      case("C2H") ; irreps = ["AG", "AU", "BG", "Bu"]
+        allocate(character(2) :: irreps(nirreps))
+        irreps(A1) =  "A1"
+        irreps(B1) =  "B1"
+        irreps(B2) =  "B2"
+        irreps(A2) =  "A2"
+
+      case("C2H") ; irreps = ["AG", "AU", "BG", "BU"]
+        allocate(character(2) :: irreps(nirreps))
+        irreps(A)  = "AG"
+        irreps(B1) = "AU"
+        irreps(B2) = "BG"
+        irreps(B3) = "BU"
+
       case("D2")  ; irreps = ["A ", "B1", "B2", "B3"]
+        allocate(character(2) :: irreps(nirreps))
+        irreps(A)  = "A"
+        irreps(B1) = "B1"
+        irreps(B2) = "B2"
+        irreps(B3) = "B3"
+
       case("D2H") ; irreps = ["AG ", "AU ", "B1G", "B1U", "B2G", "B2U", "B3G", "B3U"]
+        allocate(character(3) :: irreps(nirreps))
+        irreps(Ag)  = "AG"
+        irreps(Au)  = "AU"
+        irreps(B1g) = "B1g"
+        irreps(B1u) = "B1u"
+        irreps(B2g) = "B2g"
+        irreps(B2u) = "B2u"
+        irreps(B3g) = "B3g"
+        irreps(B3u) = "B3u"
 
       case default
         call die("Unacceptable point group '" // point_group // "' given. Please choose one of " // abelian_point_groups // ".")
@@ -216,60 +292,60 @@ contains
 
     select case(pg)
     case('C1')
-      characters = [ 1 ] ! A
+      characters = [ 1 ]
 
     case('CS')
       select case(irrep)
-        case(1) ; characters = [ 1 , 1 ] ! A'  (Ap)
-        case(2) ; characters = [ 1 ,-1 ] ! A'' (App)
+        case(Ap)  ; characters = [ 1 , 1 ]
+        case(App) ; characters = [ 1 ,-1 ]
       end select
 
     case('C2')
       select case(irrep)
-        case(1) ; characters = [ 1 , 1 ] ! A
-        case(2) ; characters = [ 1 ,-1 ] ! B
+        case(A) ; characters = [ 1 , 1 ]
+        case(B) ; characters = [ 1 ,-1 ]
       end select
 
     case('CI')
       select case(irrep)
-        case(1) ; characters = [ 1 , 1 ] ! Ag
-        case(2) ; characters = [ 1 ,-1 ] ! Au
+        case(Ag) ; characters = [ 1 , 1 ]
+        case(Au) ; characters = [ 1 ,-1 ]
       end select
 
     case('C2V')
       select case(irrep)
-        case(1) ; characters = [ 1 , 1 , 1 , 1] ! A1
-        case(2) ; characters = [ 1 , 1 ,-1 ,-1] ! A2
-        case(3) ; characters = [ 1 ,-1 , 1 ,-1] ! B1
-        case(4) ; characters = [ 1 ,-1 ,-1 , 1] ! B2
+        case(A1) ; characters = [ 1 , 1 , 1 , 1]
+        case(B1) ; characters = [ 1 ,-1 , 1 ,-1]
+        case(B2) ; characters = [ 1 ,-1 ,-1 , 1]
+        case(A2) ; characters = [ 1 , 1 ,-1 ,-1]
       end select
 
     case('C2H')
       select case(irrep)
-        case(1) ; characters = [ 1 , 1 , 1 , 1] ! Ag
-        case(2) ; characters = [ 1 , 1 ,-1 ,-1] ! Au
-        case(3) ; characters = [ 1 ,-1 , 1 ,-1] ! Bg
-        case(4) ; characters = [ 1 ,-1 ,-1 , 1] ! Bu
+        case(Ag) ; characters = [ 1 , 1 , 1 , 1]
+        case(Au) ; characters = [ 1 , 1 ,-1 ,-1]
+        case(Bg) ; characters = [ 1 ,-1 , 1 ,-1]
+        case(Bu) ; characters = [ 1 ,-1 ,-1 , 1]
       end select
 
     case('D2')
       select case(irrep)
-        case(1) ; characters = [ 1 , 1 , 1 , 1] ! A
-        case(2) ; characters = [ 1 , 1 ,-1 ,-1] ! B1
-        case(3) ; characters = [ 1 ,-1 , 1 ,-1] ! B2
-        case(4) ; characters = [ 1 ,-1 ,-1 , 1] ! B3
+        case(A)  ; characters = [ 1 , 1 , 1 , 1]
+        case(B1) ; characters = [ 1 , 1 ,-1 ,-1]
+        case(B2) ; characters = [ 1 ,-1 , 1 ,-1]
+        case(B3) ; characters = [ 1 ,-1 ,-1 , 1]
       end select
 
     case('D2H')
       select case(irrep)
-        case(1) ; characters = [ 1 , 1 , 1 , 1 , 1 , 1 , 1 , 1 ] ! Ag
-        case(2) ; characters = [ 1 , 1 , 1 , 1 ,-1 ,-1 ,-1 ,-1 ] ! Au
-        case(3) ; characters = [ 1 , 1 ,-1 ,-1 , 1 , 1 ,-1 ,-1 ] ! B1g
-        case(4) ; characters = [ 1 , 1 ,-1 ,-1 ,-1 ,-1 , 1 , 1 ] ! B1u
-        case(5) ; characters = [ 1 ,-1 , 1 ,-1 , 1 ,-1 , 1 ,-1 ] ! B2g
-        case(6) ; characters = [ 1 ,-1 , 1 ,-1 ,-1 , 1 ,-1 , 1 ] ! B2u
-        case(7) ; characters = [ 1 ,-1 ,-1 , 1 , 1 ,-1 ,-1 , 1 ] ! B3g
-        case(8) ; characters = [ 1 ,-1 ,-1 , 1 ,-1 , 1 , 1 ,-1 ] ! B3u
+        case(Ag)  ; characters = [ 1 , 1 , 1 , 1 , 1 , 1 , 1 , 1 ]
+        case(Au)  ; characters = [ 1 , 1 , 1 , 1 ,-1 ,-1 ,-1 ,-1 ]
+        case(B1g) ; characters = [ 1 , 1 ,-1 ,-1 , 1 , 1 ,-1 ,-1 ]
+        case(B1u) ; characters = [ 1 , 1 ,-1 ,-1 ,-1 ,-1 , 1 , 1 ]
+        case(B2g) ; characters = [ 1 ,-1 , 1 ,-1 , 1 ,-1 , 1 ,-1 ]
+        case(B2u) ; characters = [ 1 ,-1 , 1 ,-1 ,-1 , 1 ,-1 , 1 ]
+        case(B3g) ; characters = [ 1 ,-1 ,-1 , 1 , 1 ,-1 ,-1 , 1 ]
+        case(B3u) ; characters = [ 1 ,-1 ,-1 , 1 ,-1 , 1 , 1 ,-1 ]
       end select
 
     case default
@@ -317,75 +393,15 @@ contains
 
     integer(ip), intent(in) :: irrep
     character(*), intent(in) :: point_group
-
     character(:), allocatable :: output
 
     character(:), allocatable :: pg
 
-    pg = upper(trim(point_group))
+    character(:), allocatable :: irreps(:)
 
-    select case(pg)
-    case('C1')
-      output = "A"
-
-    case('CS')
-      select case(irrep)
-        case(1) ; output =  "Ap"
-        case(2) ; output =  "App"
-      end select
-
-    case('C2')
-      select case(irrep)
-        case(1) ; output = "A"
-        case(2) ; output = "B"
-      end select
-
-    case('CI')
-      select case(irrep)
-        case(1) ; output = "Ag"
-        case(2) ; output = "Au"
-      end select
-
-    case('C2V')
-      select case(irrep)
-        case(1) ; output = "A1"
-        case(2) ; output = "A2"
-        case(3) ; output = "B1"
-        case(4) ; output = "B2"
-      end select
-
-    case('C2H')
-      select case(irrep)
-        case(1) ; output = "Ag"
-        case(2) ; output = "Au"
-        case(3) ; output = "Bg"
-        case(4) ; output = "Bu"
-      end select
-
-    case('D2')
-      select case(irrep)
-        case(1) ; output = "A"
-        case(2) ; output = "B1"
-        case(3) ; output = "B2"
-        case(4) ; output = "B3"
-      end select
-
-    case('D2H')
-      select case(irrep)
-        case(1) ; output = "Ag"
-        case(2) ; output = "Au"
-        case(3) ; output = "B1g"
-        case(4) ; output = "B1u"
-        case(5) ; output = "B2g"
-        case(6) ; output = "B2u"
-        case(7) ; output = "B3g"
-        case(8) ; output = "B3u"
-      end select
-
-    case default
-      call die("Unacceptable point group '" // point_group // "' given. Please choose one of " // abelian_point_groups // ".")
-
-    end select
+    pg     = upper(trim(point_group))
+    irreps = group_irreps(pg)
+    output = trim(irreps(irrep))
 
   end function irrep_name
 
@@ -396,7 +412,7 @@ contains
 
     use types, only: ip
     use system, only: die
-    use characters, only: upper
+    use characters, only: upper, i2char => int2char0
 
     implicit none
 
@@ -410,64 +426,75 @@ contains
     select case(pg)
 
     case("C1")
-      if(irrep .ne. 0) call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
-      irrep = irrep + 1
-      return
+      if(irrep .ne. 0) call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
+      irrep = A
 
-    case("CS", "C2", "CI")
-
+    case("CS")
       select case(irrep)
-      case(0:1)
-        irrep = irrep + 1
-        return
-
+      case(0) ; irrep = Ap
+      case(1) ; irrep = App
       case default
-        call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+        call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
+      end select
 
+    case("C2")
+      select case(irrep)
+      case(0) ; irrep = A
+      case(1) ; irrep = B
+      case default
+        call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
+      end select
+
+    case("CI")
+      select case(irrep)
+      case(0) ; irrep = Ag
+      case(1) ; irrep = Au
+      case default
+        call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
       end select
 
     case("C2V")
       select case(irrep)
-        case(0) ; irrep = 1
-        case(1) ; irrep = 3
-        case(2) ; irrep = 4
-        case(3) ; irrep = 2
+        case(0) ; irrep = A1
+        case(1) ; irrep = B1
+        case(2) ; irrep = B2
+        case(3) ; irrep = A2
         case default
-          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+          call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
       end select
 
     case("C2H")
       select case(irrep)
-        case(0) ; irrep = 1
-        case(1) ; irrep = 2
-        case(2) ; irrep = 4
-        case(3) ; irrep = 3
+        case(0) ; irrep = Ag
+        case(1) ; irrep = Au
+        case(2) ; irrep = Bu
+        case(3) ; irrep = Bg
         case default
-          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+          call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
       end select
 
     case("D2")
       select case(irrep)
-        case(0) ; irrep = 1
-        case(1) ; irrep = 4
-        case(2) ; irrep = 3
-        case(3) ; irrep = 2
+        case(0) ; irrep = A
+        case(1) ; irrep = B3
+        case(2) ; irrep = B2
+        case(3) ; irrep = B1
         case default
-          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+          call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
       end select
 
     case("D2H")
       select case(irrep)
-        case(0) ; irrep = 1
-        case(1) ; irrep = 8
-        case(2) ; irrep = 6
-        case(3) ; irrep = 3
-        case(4) ; irrep = 4
-        case(5) ; irrep = 5
-        case(6) ; irrep = 7
-        case(7) ; irrep = 2
+        case(0) ; irrep = Ag
+        case(1) ; irrep = B3u
+        case(2) ; irrep = B2u
+        case(3) ; irrep = B1g
+        case(4) ; irrep = B1u
+        case(5) ; irrep = B2g
+        case(6) ; irrep = B3g
+        case(7) ; irrep = Au
         case default
-          call die("Unacceptable irrep label " // char(irrep) // " supplied for point group " // pg // ".")
+          call die("Unacceptable irrep label " // i2char(irrep) // " supplied for point group " // pg // ".")
       end select
 
     case default
@@ -476,6 +503,84 @@ contains
     end select
 
   end subroutine convert_ukrmol_irrep
+
+  ! ------------------------------------------------------------------------------------------------------------------------------ !
+  function targ_sym(targ_irrep, targ_proj, point_group) result(symmetry)
+    !! Return the symmetry of the target state based on it's irrep and known angular momentum projection
+
+    use types,      only: ip
+    use system,     only: die
+    use characters, only: upper, i2char => int2char0
+
+    integer(ip), intent(in) :: targ_irrep
+    integer(ip), intent(in) :: targ_proj
+    character(*), intent(in) :: point_group
+    character(:), allocatable :: symmetry
+
+    integer :: i
+    integer :: m
+    character(:), allocatable :: pg
+
+    i  = targ_irrep
+    m  = targ_proj
+    pg = upper(trim(point_group))
+
+    select case(pg)
+
+    case("C1", "CS", "C2", "CI", "C2H", "D2", "D2H")
+      call die("targ_sym not programmed for point group " // pg)
+
+    case("C2V")
+
+      select case(abs(m))
+
+      case(0)
+        select case(i)
+          case(A1) ; symmetry = "SP" ! Σ+
+          case(A2) ; symmetry = "SM" ! Σ-
+          case default
+            call die("Undetermined symmetry in " // pg // " with projection " // i2char(m) // " and irrep " // i2char(i) )
+        end select
+
+      case(1)
+        select case(i)
+          case(B1, B2) ; symmetry = "P" ! Π
+          case default
+            call die("Undetermined symmetry in " // pg // " with projection " // i2char(m) // " and irrep " // i2char(i) )
+        end select
+
+      case(2)
+        select case(i)
+          case(A1, A2) ; symmetry = "D" ! Δ
+          case default
+            call die("Undetermined symmetry in " // pg // " with projection " // i2char(m) // " and irrep " // i2char(i) )
+        end select
+
+      case(3)
+        select case(i)
+          case(B1, B2) ; symmetry = "F" ! Φ
+          case default
+            call die("Undetermined symmetry in " // pg // " with projection " // i2char(m) // " and irrep " // i2char(i) )
+        end select
+      case(4)
+        select case(i)
+          case(A1, A2) ; symmetry = "G" ! Γ
+          case default
+            call die("Undetermined symmetry in " // pg // " with projection " // i2char(m) // " and irrep " // i2char(i) )
+        end select
+
+      case default
+        ! -- The pattern seems to be
+        ! 0 projection            : A1 XOR A2
+        ! odd projection          : B1 & B2
+        ! nonzero even projection : A1 & A2
+        call die("Projection " // i2char(m) // " has not been programmed")
+
+      end select
+
+    end select
+
+  end function targ_sym
 
 ! ================================================================================================================================ !
 end module symmetry

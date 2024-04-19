@@ -24,7 +24,7 @@ contains
     use symmetry,        only: point_group, irrep_name, spin_name, group_size
     use control,         only: evaluation_energy_indices, evaluation_energies, geom_start, geom_end, skip_geom, input_type
     use constants,       only: initial_int
-    use characters,      only: char => int2char0
+    use characters,      only: i2char => int2char0
     use directories,     only: ds => directory_separator, input_directory
     use iso_fortran_env, only: iostat_end
 
@@ -78,7 +78,8 @@ contains
     ! -- check that exactly one quantum chemistry output is present
     nqchem_detected= count(qchem_exists .eqv. .true.)
     if( nqchem_detected .ne. 1 ) then
-      call die("There were " // char(nqchem_detected) // " quantum chemistry output files detected, but there should be exactly 1.")
+      call die("There were " // i2char(nqchem_detected) // &
+        " quantum chemistry output files detected, but there should be exactly 1.")
     endif
 
     ! -- determine the point group
@@ -103,9 +104,9 @@ contains
 
     ! -- print some info to stdout
     ntarg = size(targ, 1)
-    write(stdout, '("The detected target state indices are : ", ' // char(ntarg) // '(I0, X))') &
+    write(stdout, '("The detected target state indices are : ", ' // i2char(ntarg) // '(I0, X))') &
       [(targ(itarg) % n, itarg = 1, ntarg)]
-    write(stdout, '("With degeneracies :                     ", ' // char(ntarg) // '(I0, X))') &
+    write(stdout, '("With degeneracies :                     ", ' // i2char(ntarg) // '(I0, X))') &
       [(targ(itarg) % ndegen, itarg = 1, ntarg)]
     write(stdout, '("The maximum detected value of l in this calculation is ", I0)') maxval(electronic_channels % l)
 
@@ -547,7 +548,7 @@ contains
     use system,      only: die
     use symmetry,    only: irrep_name, spin_name, point_group, group_size
     use utilities,   only: read_blank
-    use characters,  only: char => int2char0
+    use characters,  only: i2char => int2char0
     use directories, only: ds => directory_separator, input_directory
 
     implicit none
@@ -570,7 +571,7 @@ contains
     do irrep = 1, group_size(point_group)
 
       ! -- read this geometry's channels to determine if channels need to be swapped
-      filename = input_directory // "collected_scattering_data" // ds // "channels" // ds // "channels.geom" // char(igeom) &
+      filename = input_directory // "collected_scattering_data" // ds // "channels" // ds // "channels.geom" // i2char(igeom) &
         // "." // spin_name(spin) // "." // irrep_name(irrep, point_group)
       inquire(           &
         file = filename, &
