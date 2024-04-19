@@ -48,7 +48,6 @@ module symmetry
   integer(ip), parameter :: B1 = 2
   integer(ip), parameter :: B2 = 3
   integer(ip), parameter :: B3 = 4
-  ! -- D2h
   integer(ip), parameter :: B1g = 3
   integer(ip), parameter :: B1u = 4
   integer(ip), parameter :: B2g = 5
@@ -86,8 +85,7 @@ contains
   ! ------------------------------------------------------------------------------------------------------------------------------ !
   function group_irreps(point_group) result(irreps)
     !! Return an array containing the names of the irreps in the supplied point_group.
-    !! Only Abelian point groups are considered. Irreps in the code will be referred to by their indicies, i.e.,
-    !! the name of irrep 3 in point group C2v is "B1" because that is the value assigned to irreps(3).
+    !! Only Abelian point groups are considered. Irreps in the code will be referred to by their indicies
 
     use system,     only: die
     use characters, only: upper

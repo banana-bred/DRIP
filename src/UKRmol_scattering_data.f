@@ -110,6 +110,14 @@ contains
       [(targ(itarg) % ndegen, itarg = 1, ntarg)]
     write(stdout, '("The maximum detected value of l in this calculation is ", I0)') maxval(electronic_channels % l)
 
+    ! -- check if degenerate states are equal in energy
+    do itarg = 1, ntarg - 1
+      if(targ(itarg) % ndegen .ne. targ(itarg + 1) % ndegen) cycle
+      if(targ(itarg) % nrg .ne. targ(itarg) % nrg) then
+        call die("The degenerate target states " // i2char(itarg) // " and " // i2char(itarg + 1) // " have different energies.")
+      endif
+    enddo
+
     ! -- read the available geometries
     call read_geometries(geometries)
     ngeom = size(geometries, 1)
@@ -270,6 +278,7 @@ contains
 
     integer(ip) :: ijunk(10)
 
+    real(rp) :: E
     real(rp) :: rjunk(10)
 
     character(1) :: cjunk(10)
@@ -314,13 +323,14 @@ contains
     ! -- read info about the target states
     do i = 1, ntarg
 
-      read(funit, *) ijunk(1), n, ijunk(1:2), irrep, targ_spin, ijunk(1:2), rjunk(1)
+      read(funit, *) ijunk(1), n, ijunk(1:2), irrep, targ_spin, ijunk(1:2), E
 
       call convert_ukrmol_irrep(irrep, point_group)
 
       targ(i) % n     = i
       targ(i) % irrep = irrep
       targ(i) % M     = targ_proj(i)
+      targ(i) % nrg   = E
 
       if(allocated(targ_ndegen)) then
         targ(i) % ndegen = targ_ndegen(i)

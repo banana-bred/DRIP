@@ -92,6 +92,8 @@ module globals
       !! The irrep of the target state
     integer(ip) :: M
       !! The projection of the target electronic state's angular momentum on the molecular axis (ℏ = 1)
+    integer(ip) :: nrg
+      !! The target state energy (only used to determine degeneracy)
   end type targ_type
 
   type electronic_channel_type
