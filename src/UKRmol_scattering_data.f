@@ -61,9 +61,9 @@ contains
       !! The name of the detected quantum chemistry software
     character(:), allocatable :: filename
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! -- check the first geometry to figure out the symmetry and channels
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! -- check the first geometry to figure out the symmetry and channels -- !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! -- read the output of the quantum chemistry software used to calculate the target orbitals
     do i = 1, size(quantum_chemistry_names, 1)
@@ -141,47 +141,18 @@ contains
       call append(indices, igeom)
     enddo
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! -- read the other geometries' channels and K-matrices -- !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     ! -- for each included geometry, read the K-matrices
     do igeom = 1, ngeom
       select case(input_type)
         case("UKRMOL") ; call read_ukrmol_kmats(spin, igeom)
-        case("DAVID")  ; call die("DAvid")
+        case("DAVID")  ; call die("D*vid")
         case default   ; call die("Improper input type " // input_type)
       end select
     enddo
-
-    ! -- loop over the necessary irreps given the point group and read K-matrices
-
-      ! -- determine point group and available indices
-        ! get point group, get size of point group
-        ! get electroic states for first geometry
-          ! determine degeneracies
-        ! loop over irreps
-          ! get channels for first geometry
-          ! ! We might have different channels for a different energy (so re-read channels for each energy IF energy independent)
-            ! otherwise, only read channels once
-          ! do the rest of the geometries
-          !geom loop
-            ! irrep loop
-
-        ! read denprop file to determine electronic state order for first file?
-
-      ! -- read channels from their respective channel files
-      !    READ FIRST GEOMETRY ONLY (for now)
-      !    MAKE SURE THAT WE CAN READ CHANNELS DESPITE CROSSING ELECTRONIC STATES.
-      !    MAYBE assign them a "true" index.
-
-      ! -- determine degenerate states
-
-
-      ! OPTIONALLY SPECIFY A GEOM_START (if not specified, use 1) geom1, geom2, geom3, ..
-      ! OPTIONALLY SPECIFY A GEOM_END (if not specified, use 1) ... geomN
-      ! geom_loop: do igeom = 1, ngeom
-
-      ! enddo geom_loop
-
-      ! -- read K-matrices from their respective file
-
 
   end subroutine get_K_matrix_and_electronic_channels
 
@@ -601,6 +572,11 @@ contains
       call die("We're at the point were we're reading the channels for each irrep and trybing to see if the degenerate states are" &
       // " different or if states cross. Mayb")
 
+      ! if state changed , figure out its symmetry. If symm changed, skipp appropriate number of states
+      ! if skipping degen states, make sure their energies are the same andActualy degenerate.
+
+      ! if degen states swap, make sure they have actaully swapped with energy check and then determine which irrep to swap to
+
       ! -- determine if the electronic states are in the correct order
       ! Will need to compare their irrep and their spin multiplicity
       ! Between geometries, a pair of degenerate states could swap, but actual electronic states could change order.
@@ -615,6 +591,10 @@ contains
       ! Given that we're reading in an irrep, the channels
 
     enddo
+
+    ! -- we'd need to figure out what the inpur energy is froMthe channel files (atomic units I think) and then choose what units
+    ! to print them out in (print to a file, of course). Will need to figure out how to structure the output at this point
+    call die("Have the code print out the target state energies ?")
 
   end subroutine read_ukrmol_kmats
 

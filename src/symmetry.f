@@ -504,7 +504,7 @@ contains
 
   ! ------------------------------------------------------------------------------------------------------------------------------ !
   function targ_sym(targ_irrep, targ_proj, point_group) result(symmetry)
-    !! Return the symmetry of the target state based on it's irrep and known angular momentum projection
+    !! Return the symmetry of the target state based on its irrep and known angular momentum projection
 
     use types,      only: ip
     use system,     only: die

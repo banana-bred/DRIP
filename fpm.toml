@@ -23,7 +23,7 @@ test-drive.tag = "v0.4.0"
 
 [[executable]]
 main="DRIP.f"
-source-dir="main"
+source-dir="program"
 name="DRIP"
 
 [[test]]
