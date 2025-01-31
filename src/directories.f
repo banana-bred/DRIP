@@ -13,7 +13,7 @@ module directories
   save
 
   ! -- procedures
-  public :: make_directories
+  public :: determine_filesystem_and_make_directories
   public :: read_directories
 
   ! -- variables
@@ -71,12 +71,15 @@ contains
 subroutine read_directories
   !! Read directories_namelist
 
-  use types,      only: big_char
-  use system,     only: die
+  use types,     only: big_char
+  use system,    only: die
+  use constants, only: ascii_space
 
   implicit none
 
+  integer :: i, n
   character(big_char), parameter :: temp = ""
+  character(:), allocatable :: buffer
 
   run_name         = temp
   input_directory  = temp
@@ -88,6 +91,23 @@ subroutine read_directories
   run_name         = trim(run_name)
   input_directory  = trim(input_directory)
   output_directory = trim(output_directory)
+
+  ! -- remove characters that might case an issue. These are the
+  !    ASCII characters before " " (32, ascii_space)
+  buffer = ""
+  n = len(input_directory)
+  do i = 1, n
+    if(iachar(input_directory(i:i)) .lt. ascii_space) cycle
+    buffer = buffer // input_directory(i:i)
+  enddo
+  call move_alloc(buffer, input_directory)
+  buffer = ""
+  n = len(output_directory)
+  do i = 1, n
+    if(iachar(output_directory(i:i)) .lt. ascii_space) cycle
+    buffer = buffer // output_directory(i:i)
+  enddo
+  call move_alloc(buffer, output_directory)
 
   ! -- print namelist variables to stdout
   write(stdout, directories_namelist)
@@ -111,8 +131,8 @@ subroutine read_directories
 end subroutine read_directories
 
 ! ---------------------------------------------------------------------------------------------------!
-subroutine make_directories
-  !! Make the directories needed for program execution
+subroutine determine_filesystem_and_make_directories
+  !! Make the directories needed for program execution and determines
 
   use types,      only: ip
   use system,     only: die
@@ -259,7 +279,7 @@ subroutine make_directories
 
   ! enddo
 
-end subroutine make_directories
+end subroutine determine_filesystem_and_make_directories
 
 ! ---------------------------------------------------------------------------------------------------!
 subroutine mkdir(directory)
@@ -276,7 +296,7 @@ subroutine mkdir(directory)
   logical     :: exists
   integer(ip) :: stat
 
-  call system(mkdir_command // directory, status = stat)
+  call execute_command_Line(mkdir_command // directory, exitstat = stat)
 
   if(stat .ne. shell_ok) call die("Trying to make directory '" // directory // "' returned status code " // int2char0(stat) )
 end subroutine mkdir

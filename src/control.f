@@ -2,7 +2,7 @@
 module control
   !! Global variables that will be used throughout program execution.
 
-  use types,     only: ip, rp
+  use types,     only: rp
   use constants, only: initial_int, one
 
   implicit none
@@ -28,6 +28,8 @@ module control
   public :: geom_start
   public :: geom_end
   public :: skip_geom
+  public :: selected_qchem_code
+  public :: default_qchem_code
 
   ! -- procedures
   public :: read_control
@@ -45,20 +47,20 @@ module control
   logical :: energy_dependent = .false.
     !! Will the code use an energy-dependent S-matrix approach ?
 
-  integer(ip) :: verbosity = 0
+  integer :: verbosity = 0
     !! The verbosity of the program. Higher values determine how much info to print
     !!  0 : standard
     !!  1 : verbose
     !!  2 : very verbose
-  integer(ip) :: num_evaluation_energies = initial_int
+  integer :: num_evaluation_energies = initial_int
     !! The number of evaluation energies for reading K-matrices. For each spin multiplicity in an energy independent calculation,
     !! DRIP will run this many times (once for each energy).
 
-  integer(ip) :: geom_start = 1
+  integer :: geom_start = 1
     !! The first geometry to consider from the input UKRmol+ directory (default 1)
-  integer(ip) :: geom_end = initial_int
+  integer :: geom_end = initial_int
     !! The last geometry to consider from the input UKRmol+ directory (default last available)
-  integer(ip), allocatable :: skip_geom(:)
+  integer, allocatable :: skip_geom(:)
     !! Optional array of input geometries to skip
 
   real(rp) :: ukrmol_channel_energy2au
@@ -67,7 +69,7 @@ module control
   real(rp) :: ukrmol_internuclear_distance2au
     !! The multiplicative conversion factor to convert UKRmol+ internuclear distance units to atomic units
 
-  integer(ip), allocatable :: evaluation_energy_indices(:)
+  integer, allocatable :: evaluation_energy_indices(:)
     !! Array containing the evaluation energy indicies at which the K-matrices will be evaluated
 
   real(rp), allocatable :: evaluation_energies(:)
@@ -95,23 +97,34 @@ module control
   character(11) :: frmt_xy = "(2e30.20e3)"
     !! default write format for outputting two real numbers  30 characters wide, 20 characters after the period (.), and 3 digits in the exponent
 
-  namelist / control_namelist /                              &
+  character(6) :: selected_qchem_code
+    !! The quantum chemistry code used for describing the scattering target.
+    !! Available options are "psi4", "molpro", and "molcas". If this is omitted,
+    !! the code will automatically try and determine the code that was used but
+    !! will fail if there quantum chemistry output files corresponding to different
+    !! codes, e.g., if there is a `target.psi4.out` and `target.molpro.out`.
+  character(3), parameter :: default_qchem_code = "DNE"
+    !! The default value of `selected_qchem_code` if none is provided
+
+
+  namelist / control_namelist /                                    &
     !! Controls the overall behavior and flow of the program.
-                                calculation_type,            &
-                                energy_dependent,            &
-                                molecule,                    &
-                                print_K,                     &
-                                print_S,                     &
-                                input_type,                  &
-                                evaluation_energies,         &
-                                evaluation_energy_indices,   &
-                                evaluation_energy_units,     &
-                                ukrmol_channel_energy_units,  &
-                                ukrmol_internuclear_distance_units, &
-                                geom_start,                  &
-                                geom_end,                    &
-                                skip_geom,                   &
-                                verbosity
+                                calculation_type                   &
+                              , energy_dependent                   &
+                              , molecule                           &
+                              , print_K                            &
+                              , print_S                            &
+                              , input_type                         &
+                              , evaluation_energies                &
+                              , evaluation_energy_indices          &
+                              , evaluation_energy_units            &
+                              , ukrmol_channel_energy_units        &
+                              , ukrmol_internuclear_distance_units &
+                              , geom_start                         &
+                              , geom_end                           &
+                              , skip_geom                          &
+                              , selected_qchem_code                &
+                              , verbosity
 
 ! =================================================================================================== !
 contains
@@ -130,16 +143,17 @@ contains
 
     implicit none
 
-    integer(ip) :: io
+    integer :: io
 
     character(big_char), parameter :: temp = ""
 
     ! -- initialze allocatable variables for reading
     molecule                    = temp
-    input_type                  = temp
-    evaluation_energy_units     = temp
+    input_type                         = temp
+    evaluation_energy_units            = temp
     ukrmol_internuclear_distance_units = temp
-    ukrmol_channel_energy_units  = temp
+    ukrmol_channel_energy_units        = temp
+    selected_qchem_code                = default_qchem_code
     allocate(skip_geom(1000))                 ; skip_geom                 = 0
     allocate(evaluation_energies(1000))       ; evaluation_energies       = zero
     allocate(evaluation_energy_indices(1000)) ; evaluation_energy_indices = 0

@@ -20,6 +20,8 @@ module types
   public :: rp
   public :: rrp
   public :: complex_pair
+  public :: targ_type
+  public :: elec_chanl_type
 
   integer, parameter :: big_char    = 2000
     !! Just a large value for a character array for when we need to initialize a large array
@@ -45,10 +47,39 @@ module types
     !! hermitian adjoint equivalents differently
 
     complex(rp) :: elem
-
     complex(rp) :: elem_d
 
   end type complex_pair
+
+  type targ_type
+    !! The state of the target molecule
+    integer :: n
+      !! The index of the target state (ground = 1)
+    integer :: ndegen
+      !! The index of the target state accounting for degeneracies (ground = 1). In the case where there are the target
+      !! states with n = 1, 2, 3, 4, 5 but the states 2/3 and 4/5 are mutually degenerate (e.g., a Π or Δ state), then
+      !! ndegend will be 1, 2, 2, 3, 3.
+    integer :: irrep
+      !! The irrep of the target state
+    integer :: M
+      !! The projection of the target electronic state's angular momentum on the molecular axis (ℏ = 1)
+  end type targ_type
+
+  type elec_chanl_type
+    !! The electronic channel of the system (target state + incident electron)
+    integer :: idx
+      !! The channel index. Useful for when electronic states (and therefore electronic channels) swap order
+    type(targ_type) :: targ
+    integer :: l
+      !! The orbital angular momentum quantum number of the incident electron
+    integer :: lambda
+      !! The projection of l on the molecular axis
+    integer :: q
+      !! Determines the normalization used for the f and g coulomb functions.
+      !!  q = 0 : alternative normalization [sqrt(B) from Seaton 2002, Comp Phys Comm 146 (2002) 225-249]
+      !!  q = 4 : standard normalization. This is always the case for UKRmol.
+  end type elec_chanl_type
+
 
 
 ! =================================================================================================== !

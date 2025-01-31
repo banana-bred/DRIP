@@ -27,6 +27,7 @@ module system
   public :: shell_ok
   public :: progname
   public :: OS_is_windows
+  public :: macheps
 
   logical :: OS_is_windows
     !! Is the current operating system Windows ?
@@ -42,6 +43,9 @@ module system
     !! The expected iostat result from a successful call to read()
   integer(ip) :: shell_ok
     !! The expected return value for the current environment and shell. Used in system calls.
+
+  real(rp), parameter :: macheps = epsilon(1._rp)
+    !! Machine epsilon
 
   character(4), parameter :: progname = "DRIP"
 

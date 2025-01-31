@@ -3,8 +3,6 @@ module symmetry
   !! Contains procedures and variables related to various symmetries, including point groups,
   !! irreps, and spin multiplicities.
 
-  use types, only: ip
-
   implicit none
 
   private
@@ -33,28 +31,27 @@ module symmetry
   ! The integer labels of the various irreps !
   ! ---------------------------------------- !
   ! -- Cs
-  integer(ip), parameter :: Ap  = 1
-  integer(ip), parameter :: App = 2
+  integer, parameter :: Ap  = 1
+  integer, parameter :: App = 2
   ! -- Ci, C2h
-  integer(ip), parameter :: Ag = 1
-  integer(ip), parameter :: Au = 2
-  integer(ip), parameter :: Bg = 3
-  integer(ip), parameter :: Bu = 4
+  integer, parameter :: Ag = 1
+  integer, parameter :: Au = 2
+  integer, parameter :: Bg = 3
+  integer, parameter :: Bu = 4
   ! -- C1, C2, C2v, D2, D2h
-  integer(ip), parameter :: A  = 1
-  integer(ip), parameter :: A1 = 1
-  integer(ip), parameter :: A2 = 4
-  integer(ip), parameter :: B  = 2
-  integer(ip), parameter :: B1 = 2
-  integer(ip), parameter :: B2 = 3
-  integer(ip), parameter :: B3 = 4
-  integer(ip), parameter :: B1g = 3
-  integer(ip), parameter :: B1u = 4
-  integer(ip), parameter :: B2g = 5
-  integer(ip), parameter :: B2u = 6
-  integer(ip), parameter :: B3g = 7
-  integer(ip), parameter :: B3u = 8
-
+  integer, parameter :: A  = 1
+  integer, parameter :: A1 = 1
+  integer, parameter :: A2 = 4
+  integer, parameter :: B  = 2
+  integer, parameter :: B1 = 2
+  integer, parameter :: B2 = 3
+  integer, parameter :: B3 = 4
+  integer, parameter :: B1g = 3
+  integer, parameter :: B1u = 4
+  integer, parameter :: B2g = 5
+  integer, parameter :: B2u = 6
+  integer, parameter :: B3g = 7
+  integer, parameter :: B3u = 8
 
 ! ================================================================================================================================ !
 contains
@@ -62,12 +59,13 @@ contains
 
   ! ------------------------------------------------------------------------------------------------------------------------------ !
   pure function spin_name(spin_multiplicity) result(output)
+    !! Return the name of the spin multiplicity given the spin multiplicity 2S + 1
 
     use types, only: ip
 
     implicit none
 
-    integer(ip), intent(in) :: spin_multiplicity
+    integer, intent(in) :: spin_multiplicity
     character(:), allocatable :: output
 
     select case(spin_multiplicity)
@@ -113,41 +111,41 @@ contains
         irreps(Ap)  = "AP"
         irreps(App) = "APP"
 
-      case("C2")  ; irreps = ["A", "B"]
+      case("C2")
         allocate(character(1) :: irreps(nirreps))
         irreps(A) = "A"
         irreps(B) = "B"
 
-      case("CI")  ; irreps = ["AG", "AU"]
+      case("CI")
         allocate(character(2) :: irreps(nirreps))
         irreps(Ag) = "Ag"
         irreps(Au) = "Au"
 
-      case("C2V") ; irreps = ["A1", "A2", "B1", "B2"]
+      case("C2V")
         allocate(character(2) :: irreps(nirreps))
         irreps(A1) =  "A1"
         irreps(B1) =  "B1"
         irreps(B2) =  "B2"
         irreps(A2) =  "A2"
 
-      case("C2H") ; irreps = ["AG", "AU", "BG", "BU"]
+      case("C2H")
         allocate(character(2) :: irreps(nirreps))
-        irreps(A)  = "AG"
-        irreps(B1) = "AU"
-        irreps(B2) = "BG"
-        irreps(B3) = "BU"
+        irreps(A)  = "Ag"
+        irreps(B1) = "Au"
+        irreps(B2) = "Bg"
+        irreps(B3) = "Bu"
 
-      case("D2")  ; irreps = ["A ", "B1", "B2", "B3"]
+      case("D2")
         allocate(character(2) :: irreps(nirreps))
         irreps(A)  = "A"
         irreps(B1) = "B1"
         irreps(B2) = "B2"
         irreps(B3) = "B3"
 
-      case("D2H") ; irreps = ["AG ", "AU ", "B1G", "B1U", "B2G", "B2U", "B3G", "B3U"]
+      case("D2H")
         allocate(character(3) :: irreps(nirreps))
-        irreps(Ag)  = "AG"
-        irreps(Au)  = "AU"
+        irreps(Ag)  = "Ag"
+        irreps(Au)  = "Au"
         irreps(B1g) = "B1g"
         irreps(B1u) = "B1u"
         irreps(B2g) = "B2g"
@@ -176,14 +174,14 @@ contains
 
     implicit none
 
-    integer(ip), intent(in) :: irrep1
-    integer(ip), intent(in) :: irrep2
+    integer, intent(in) :: irrep1
+    integer, intent(in) :: irrep2
     character(*), intent(in) :: point_group
-    integer(ip) :: irrep_product
+    integer :: irrep_product
 
-    integer(ip), allocatable :: irrep1_characters(:)
-    integer(ip), allocatable :: irrep2_characters(:)
-    integer(ip), allocatable :: irrep3_characters(:)
+    integer, allocatable :: irrep1_characters(:)
+    integer, allocatable :: irrep2_characters(:)
+    integer, allocatable :: irrep3_characters(:)
     character(:), allocatable :: pg
 
     pg = upper(trim(point_group))
@@ -208,14 +206,14 @@ contains
 
     implicit none
 
-    integer(ip),  intent(in)  :: characters(:)
+    integer,  intent(in)  :: characters(:)
     character(*), intent(in)  :: point_group
-    integer(ip) :: irrep
+    integer :: irrep
 
     character(:), allocatable :: pg
 
-    integer(ip) :: i
-    integer(ip) :: n
+    integer :: i
+    integer :: n
 
     pg = upper(trim(point_group))
 
@@ -242,7 +240,7 @@ contains
     implicit none
 
     character(*), intent(in) :: point_group
-    integer(ip) :: n
+    integer :: n
 
     character(:), allocatable :: pg
 
@@ -279,10 +277,10 @@ contains
 
     implicit none
 
-    integer(ip), intent(in) :: irrep
+    integer, intent(in) :: irrep
     character(*), intent(in) :: point_group
 
-    integer(ip), allocatable :: characters(:)
+    integer, allocatable :: characters(:)
 
     character(:), allocatable :: pg
 
@@ -389,7 +387,7 @@ contains
 
     implicit none
 
-    integer(ip), intent(in) :: irrep
+    integer, intent(in) :: irrep
     character(*), intent(in) :: point_group
     character(:), allocatable :: output
 
@@ -414,7 +412,7 @@ contains
 
     implicit none
 
-    integer(ip),  intent(inout) :: irrep
+    integer,  intent(inout) :: irrep
     character(*), intent(in) :: point_group
 
     character(:), allocatable :: pg
@@ -510,8 +508,8 @@ contains
     use system,     only: die
     use characters, only: upper, i2char => int2char0
 
-    integer(ip), intent(in) :: targ_irrep
-    integer(ip), intent(in) :: targ_proj
+    integer, intent(in) :: targ_irrep
+    integer, intent(in) :: targ_proj
     character(*), intent(in) :: point_group
     character(:), allocatable :: symmetry
 

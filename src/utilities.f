@@ -14,6 +14,7 @@ module utilities
   public swapvars
   public same_integers
   public read_blank
+  public reals_are_eq
 
   interface is_even
     module procedure is_even_integer
@@ -32,6 +33,7 @@ module utilities
     module procedure same_integers_3
     module procedure same_integers_4
   end interface same_integers
+
 
 ! ================================================================================================================================ !
 contains
@@ -145,16 +147,39 @@ contains
     if(all(args .eq. args)) answer = .true.
   end function same_integers_4
 
-! -------------------------------------------------------------------------------------------------------------------------------- !
-subroutine read_blank(read_unit, num_read)
-  !! Reads num_read lines from unit read_unit, not storing any information. If num_read is not supplied, read one line.
-  implicit none
-  integer, intent(in)           :: read_unit
-  integer, intent(in), optional :: num_read
-  integer :: k, n
-  n = 1 ; if(present(num_read)) n = num_read
-  do k = 1, n ; read(read_unit,*) ; enddo
-end subroutine read_blank
+  ! -------------------------------------------------------------------------------------------------------------------------------- !
+  subroutine read_blank(read_unit, num_read)
+    !! Reads num_read lines from unit read_unit, not storing any information. If num_read is not supplied, read one line.
+    implicit none
+    integer, intent(in)           :: read_unit
+    integer, intent(in), optional :: num_read
+    integer :: k, n
+    n = 1 ; if(present(num_read)) n = num_read
+    do k = 1, n ; read(read_unit,*) ; enddo
+  end subroutine read_blank
+
+  ! -------------------------------------------------------------------------------------------------------------------------------- !
+  pure elemental function reals_are_eq(a, b, tol) result(ans)
+    !! Test if two reals are within a tolerance. If `tol` is given, use that .
+    !! Else, use 10 * machine epsilon
+
+    use system, only: macheps
+
+    implicit none
+
+    real(rp), intent(in) :: a, b
+    real(rp), intent(in), optional :: tol
+
+    logical  :: ans
+    real(rp) :: tol_local
+
+    tol_local = 10 * macheps ; if(present(tol)) tol_local = tol
+
+    ans = .false.
+
+    if(abs(a - b) .le. tol_local) ans = .true.
+
+  end function reals_are_eq
 
 ! ================================================================================================================================ !
 end module utilities

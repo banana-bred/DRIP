@@ -2,6 +2,9 @@
 module constants
   !! Contains defined constants, like pi and the number 1 at the current real precision (rp)
 
+  ! -- whenever this releases to stdlib
+  !use stdlib_codtata_constants ...
+
   use types, only: ip, rp, rrp
 
   implicit none
@@ -25,41 +28,43 @@ module constants
   public :: deg2rad
   public :: euler_mascheroni
   public :: initial_int
+  public :: rad2deg
   public :: lowercase_a
   public :: lowercase_z
-  public :: one
-  public :: pi
-  public :: rad2deg
-  public :: two
   public :: uppercase_a
   public :: uppercase_z
+  public :: ascii_space
   public :: zero
+  public :: one
+  public :: two
+  public :: pi
+  public :: atol
+  public :: rtol
 
   ! -- numbers
-  real(rp), parameter :: ahalf = 1._rp / 2._rp
+  real(rp), parameter :: ahalf = 0.5_rp
   real(rp), parameter :: zero  = 0._rp
   real(rp), parameter :: one   = 1._rp
   real(rp), parameter :: two   = 2._rp
-  real(rp), parameter :: pi    = atan(1._rp)*4._rp
+  real(rp), parameter :: pi    = atan(1._rp) * 4._rp
     !! π
-  complex(rp), parameter :: ci = (0._rp, 1._rp)
+  real(rp), parameter :: atol = epsilon(one)
+  real(rp), parameter :: rtol = sqrt(atol)
+  complex(rp), parameter :: ci = (zero, one)
     !! the square root of -1
 
   ! -- ASCII constants
-  integer(ip), parameter :: uppercase_a = 65
-    !! the ASCII number representing the character "A"
-  integer(ip), parameter :: uppercase_z = 90
-    !! the ASCII number representing the character "Z"
-  integer(ip), parameter :: lowercase_a = 97
-    !! the ASCII number representing the character "a"
-  integer(ip), parameter :: lowercase_z = 122
-    !! the ASCII number representing the character "z"
+  integer, parameter :: uppercase_a = ichar('A')
+  integer, parameter :: uppercase_z = ichar('Z')
+  integer, parameter :: lowercase_a = ichar('a')
+  integer, parameter :: lowercase_z = ichar('z')
+  integer, parameter :: ascii_space = ichar(' ')
 
-  integer(ip), parameter :: initial_int = -409
+  integer, parameter :: initial_int = -409
     !! initializ positive integers to this number to figure out if they have taken a reasonable value
 
   ! -- conversion constants
-  integer(ip), parameter :: au2ryd = 2
+  integer, parameter :: au2ryd = 2
     !! multiplication factor to convert atomic units of energy (hartree) to Rydbergs
   real(rp), parameter :: au2invcm = 219474.6313710e0_rp
     !! multiplication factor to convert atomic units of energy (hartree) to wavenumbers (inverse centimeters)
