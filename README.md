@@ -1,7 +1,7 @@
 # DRIP
 ## Dissociative Recombination and Photo $\leftrightarrow$ Ionization
 
-This is me rewriting most of the code that I wrote during my PhD because the original version has become nearly immutable and could be much easier to use.
+This is me rewriting most of the [code](https://github.com/banana-bred/DRIP-old-.git) that I wrote during my PhD because the original version has become nearly immutable and could be much easier to use.
 DRIP is being rebuilt as an [FPM](https://fpm.fortran-lang.org/) package so that it is easier to install and use.
 It is very much still a work in progress, and can currently do nothing.
 The basic idea is that it could be used alongside the [UKRmol+](https://amosgateway.org/ukrmol/) electron scattering codes to study [dissociative recombination (DR)](https://en.wikipedia.org/wiki/Dissociative_recombination),
